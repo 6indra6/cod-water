@@ -1,0 +1,2795 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0b0f12">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="UMBRA补水终端">
+    <link id="dynamicFavicon" rel="icon" type="image/png" href="">
+    <link id="dynamicAppleIcon" rel="apple-touch-icon" href="">
+    <link id="dynamicManifest" rel="manifest" href="">
+    <title>UMBRA HYDRATION // 使命召唤战术补水终端</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Rajdhani & Share Tech Mono & Noto Sans SC -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=Rajdhani:wght@600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cod: {
+                            bg: '#0b0f12',
+                            panel: '#11181f',
+                            panelLight: '#17212b',
+                            border: '#243442',
+                            green: '#00ff66',
+                            greenDim: 'rgba(0, 255, 102, 0.15)',
+                            blue: '#00d8ff',
+                            blueDim: 'rgba(0, 216, 255, 0.15)',
+                            amber: '#ffaa00',
+                            amberDim: 'rgba(255, 170, 0, 0.15)',
+                            red: '#ff3333',
+                            redDim: 'rgba(255, 51, 51, 0.2)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Rajdhani"', '"Noto Sans SC"', 'sans-serif'],
+                        mono: ['"Share Tech Mono"', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --hud-primary: #00ff66;
+            --hud-armor: #00d8ff;
+            --hud-amber: #ffaa00;
+            --hud-red: #ff3333;
+        }
+
+        body {
+            background-color: #0b0f12;
+            color: #e2e8f0;
+            font-family: 'Rajdhani', 'Noto Sans SC', sans-serif;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        /* 战术网格与扫描线背景 */
+        .tactical-bg {
+            background-color: #0b0f12;
+            background-image: 
+                radial-gradient(circle at 50% 35%, rgba(0, 216, 255, 0.05) 0%, transparent 65%),
+                linear-gradient(rgba(0, 255, 102, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 102, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 32px 32px, 32px 32px;
+        }
+
+        /* CRT/夜视仪微弱扫描线 */
+        .scanlines::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                to bottom,
+                transparent 0px,
+                transparent 2px,
+                rgba(0, 0, 0, 0.22) 3px,
+                rgba(0, 0, 0, 0.22) 4px
+            );
+            pointer-events: none;
+            z-index: 40;
+        }
+
+        /* 屏幕暗角 */
+        .vignette::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            box-shadow: inset 0 0 90px rgba(0, 0, 0, 0.85);
+            pointer-events: none;
+            z-index: 41;
+        }
+
+        /* 夜视仪全绿滤镜模式 (NVG OVERDRIVE) */
+        body.nvg-mode {
+            filter: sepia(100%) hue-rotate(85deg) saturate(260%) brightness(0.95) contrast(1.15);
+        }
+
+        /* 军事科技切角面板 */
+        .clip-panel {
+            clip-path: polygon(
+                0 0,
+                calc(100% - 16px) 0,
+                100% 16px,
+                100% 100%,
+                16px 100%,
+                0 calc(100% - 16px)
+            );
+        }
+
+        .clip-btn {
+            clip-path: polygon(
+                0 0,
+                calc(100% - 10px) 0,
+                100% 10px,
+                100% 100%,
+                10px 100%,
+                0 calc(100% - 10px)
+            );
+            transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .clip-btn:active {
+            transform: scale(0.97);
+        }
+
+        .clip-plate {
+            clip-path: polygon(
+                6px 0,
+                100% 0,
+                calc(100% - 6px) 100%,
+                0 100%
+            );
+        }
+
+        /* 发光边框与文字特效 */
+        .glow-green {
+            text-shadow: 0 0 10px rgba(0, 255, 102, 0.6);
+        }
+        .glow-blue {
+            text-shadow: 0 0 10px rgba(0, 216, 255, 0.65);
+        }
+        .glow-amber {
+            text-shadow: 0 0 10px rgba(255, 170, 0, 0.65);
+        }
+        .glow-red {
+            text-shadow: 0 0 12px rgba(255, 51, 51, 0.8);
+        }
+
+        .plate-active-glow {
+            box-shadow: 0 0 14px rgba(0, 216, 255, 0.45), inset 0 0 8px rgba(255, 255, 255, 0.35);
+        }
+
+        /* 护甲插入动画 */
+        @keyframes plateInsert {
+            0% { transform: translateY(-14px) scale(1.06); filter: brightness(2); }
+            60% { transform: translateY(2px) scale(0.98); }
+            100% { transform: translateY(0) scale(1); filter: brightness(1); }
+        }
+        .animate-plate-insert {
+            animation: plateInsert 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        /* 音效面板高亮闪烁动画 */
+        @keyframes audioPanelHighlight {
+            0%, 100% { box-shadow: 0 0 0px rgba(255, 170, 0, 0); border-color: #243442; }
+            30%, 70% { box-shadow: 0 0 35px rgba(255, 170, 0, 0.55); border-color: #ffaa00; }
+        }
+        .highlight-audio-panel {
+            animation: audioPanelHighlight 1.6s ease-in-out;
+        }
+
+        /* 雷达扫描旋转动画 */
+        @keyframes radarSweep {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .radar-sweep {
+            background: conic-gradient(
+                from 0deg,
+                rgba(0, 255, 102, 0.45) 0deg,
+                rgba(0, 255, 102, 0.1) 50deg,
+                transparent 95deg,
+                transparent 360deg
+            );
+            animation: radarSweep 3.2s linear infinite;
+        }
+        .radar-sweep.paused {
+            animation-play-state: paused;
+            opacity: 0.35;
+        }
+
+        /* 紧急红色警报脉冲 */
+        @keyframes redAlertPulse {
+            0%, 100% { box-shadow: inset 0 0 0px rgba(255, 51, 51, 0); }
+            50% { box-shadow: inset 0 0 85px rgba(255, 51, 51, 0.65); }
+        }
+        .alert-screen-flash {
+            animation: redAlertPulse 0.9s ease-in-out infinite;
+        }
+
+        /* 战术斜纹装饰条 */
+        .hazard-stripes {
+            background: repeating-linear-gradient(
+                -45deg,
+                rgba(255, 170, 0, 0.2),
+                rgba(255, 170, 0, 0.2) 8px,
+                transparent 8px,
+                transparent 16px
+            );
+        }
+
+        .hazard-stripes-red {
+            background: repeating-linear-gradient(
+                -45deg,
+                rgba(255, 51, 51, 0.28),
+                rgba(255, 51, 51, 0.28) 10px,
+                rgba(0, 0, 0, 0.4) 10px,
+                rgba(0, 0, 0, 0.4) 20px
+            );
+        }
+
+        /* 命中反馈准星闪烁 */
+        @keyframes hitmarkerPop {
+            0% { transform: translate(-50%, -50%) scale(0.6); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+        }
+        .hitmarker-fx {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            width: 24px;
+            height: 24px;
+            animation: hitmarkerPop 0.18s ease-out forwards;
+        }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f12;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #243442;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00d8ff;
+        }
+    </style>
+</head>
+<body class="tactical-bg scanlines vignette min-h-screen flex flex-col justify-between relative selection:bg-cod-green selection:text-black">
+
+    <!-- 浮动战术加分与Hitmarker准星容器 -->
+    <div id="floatingFeedbackContainer" class="fixed inset-0 pointer-events-none z-50 overflow-hidden"></div>
+
+    <!-- 顶部战术状态栏 (OPERATOR HUD) -->
+    <header class="border-b border-cod-border bg-cod-panel/95 backdrop-blur-md sticky top-0 z-30">
+        <div class="max-w-6xl mx-auto px-3 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2">
+            
+            <!-- 左侧：UMBRA 战术徽章 + 特战队员代号下拉（默认 Graves Shadow 0-1，含 Gaz Bravo 2-6） -->
+            <div class="flex items-center gap-2.5 flex-wrap">
+                <!-- UMBRA 专属徽章图标按钮（点击可打开App图标与安装指南） -->
+                <button id="openAppExportModalBtn" class="relative w-10 h-10 rounded-full bg-black border border-slate-500/80 hover:border-cod-amber flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(255,170,0,0.3)] group transition" title="UMBRA 暗影徽章 // 点击查看手机App安装与图标下载">
+                    <svg class="w-9 h-9" viewBox="0 0 200 200">
+                        <defs>
+                            <clipPath id="umbraInnerClip">
+                                <circle cx="100" cy="108" r="64" />
+                            </clipPath>
+                            <path id="umbraTextArc" d="M 48,92 A 56,56 0 0,1 152,92" />
+                        </defs>
+                        <!-- 外层黑灰双环 -->
+                        <circle cx="100" cy="100" r="96" fill="#080808" stroke="#6b7280" stroke-width="5"/>
+                        <circle cx="100" cy="100" r="84" fill="#18181b" stroke="#27272a" stroke-width="3"/>
+                        <!-- 顶部弧形 UMBRA 字样 -->
+                        <text fill="#ffffff" font-family="Rajdhani, sans-serif" font-weight="900" font-size="21" letter-spacing="3.5">
+                            <textPath href="#umbraTextArc" startOffset="50%" text-anchor="middle">UMBRA</textPath>
+                        </text>
+                        <!-- 内部横条纹底圆 -->
+                        <g clip-path="url(#umbraInnerClip)">
+                            <circle cx="100" cy="108" r="64" fill="#1f2023"/>
+                            <rect x="30" y="46" width="140" height="8" fill="#7c7f85"/>
+                            <rect x="30" y="62" width="140" height="8" fill="#7c7f85"/>
+                            <rect x="30" y="78" width="140" height="8" fill="#7c7f85"/>
+                            <rect x="30" y="94" width="140" height="8" fill="#7c7f85"/>
+                            <rect x="30" y="110" width="140" height="8" fill="#7c7f85"/>
+                            <rect x="30" y="126" width="140" height="8" fill="#7c7f85"/>
+                            <rect x="30" y="142" width="140" height="8" fill="#7c7f85"/>
+                            <rect x="30" y="158" width="140" height="8" fill="#7c7f85"/>
+                        </g>
+                        <circle cx="100" cy="108" r="64" fill="none" stroke="#ffffff" stroke-width="3.5"/>
+                        <!-- 左右对称白色闪电 -->
+                        <polygon points="32,68 68,100 50,100 78,125 58,125 84,152 46,118 63,118 36,94 55,94" fill="#ffffff"/>
+                        <polygon points="168,68 132,100 150,100 122,125 142,125 116,152 154,118 137,118 164,94 145,94" fill="#ffffff"/>
+                        <!-- 中央国际象棋战车 (Rook) -->
+                        <path d="M78,52 H87 V61 H95 V52 H105 V61 H113 V52 H122 V72 L115,78 V84 H85 V78 L78,72 Z M87,86 H113 V93 H87 Z M89,95 H111 L115,134 H85 Z M80,136 H120 V145 H80 Z M74,147 H126 V158 H74 Z" fill="#0d0e11" stroke="#ffffff" stroke-width="3.5" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+
+                <div class="relative flex items-center bg-cod-bg/95 border border-cod-amber/70 hover:border-cod-amber px-2.5 py-1 clip-btn">
+                    <span id="operatorFactionDot" class="w-2 h-2 rounded-full bg-cod-amber animate-pulse shadow-[0_0_8px_#ffaa00] mr-2 shrink-0"></span>
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span id="operatorFactionTag" class="text-[9px] font-mono tracking-widest text-cod-amber font-bold">SHADOW COMPANY // 暗影公司</span>
+                            <span class="text-[9px] font-mono text-slate-400">[切换干员]</span>
+                        </div>
+                        <select id="operatorSelect" class="bg-transparent font-mono text-xs sm:text-sm font-bold text-white tracking-wider outline-none cursor-pointer pr-3">
+                            <option value="0" class="bg-cod-panel text-cod-amber font-bold">Graves Shadow 0-1 (菲利普·格雷夫斯)</option>
+                            <option value="1" class="bg-cod-panel text-cod-blue">Ghost Bravo 0-7 (西蒙·“幽灵”·莱利)</option>
+                            <option value="2" class="bg-cod-panel text-cod-green">Soap Bravo 7-1 (约翰·“肥皂”·麦克塔维什)</option>
+                            <option value="3" class="bg-cod-panel text-cod-green">Price Bravo 0-6 (约翰·普莱斯上尉)</option>
+                            <option value="4" class="bg-cod-panel text-cod-blue font-bold">Gaz Bravo 2-6 (凯尔·“盖兹”·加里克)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 当前水合战备状态徽章 -->
+                <div id="hydrationStatusBadge" class="hidden xl:flex items-center gap-2 px-2.5 py-1 border border-cod-amber/50 bg-cod-amberDim clip-btn">
+                    <span id="statusDot" class="w-2 h-2 bg-cod-amber"></span>
+                    <div>
+                        <div class="text-[9px] font-mono text-slate-300 tracking-wider">HYDRATION STATUS</div>
+                        <div id="statusText" class="text-[11px] font-bold tracking-wider text-cod-amber">轻度脱水警告 // LOW ARMOR</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中间：战术时钟与零点自动清零倒计时 -->
+            <div class="hidden lg:flex flex-col items-center font-mono">
+                <div id="tacticalClock" class="text-xs text-cod-green tracking-widest font-bold">00:00:00 LOCAL</div>
+                <div class="text-[10px] text-slate-400 tracking-wider">
+                    距离零点清零: <span id="midnightCountdown" class="text-cod-amber font-bold">00:00:00</span>
+                </div>
+            </div>
+
+            <!-- 右侧：连胜天数、手动重置、App图标导出、夜视仪与音效开关 -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <!-- 连续执勤勋章 -->
+                <div class="flex items-center gap-1.5 bg-cod-bg/90 border border-cod-border px-2 py-1 clip-btn" title="连续满甲天数 / 累计执勤天数">
+                    <svg class="w-3.5 h-3.5 text-cod-amber shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                    </svg>
+                    <div class="leading-tight font-mono">
+                        <div class="text-[8px] text-slate-400">STREAK / TOTAL</div>
+                        <div class="text-xs font-bold text-cod-amber"><span id="streakCount">1</span>D <span class="text-slate-500">/</span> <span id="headerTotalDays" class="text-cod-blue">1</span>D</div>
+                    </div>
+                </div>
+
+                <!-- 顶部显眼的【手动重置】按钮 -->
+                <button id="headerManualResetBtn" class="bg-cod-bg/90 border border-cod-red/60 hover:bg-cod-red hover:text-black px-2.5 py-1.5 clip-btn flex items-center gap-1 text-xs font-mono font-bold text-cod-red transition" title="手动重置今日饮水量与护甲进度">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    <span class="hidden sm:inline">手动重置</span>
+                </button>
+
+                <!-- 手机App图标与安装指南按钮 -->
+                <button id="headerAppGuideBtn" class="bg-cod-bg/90 border border-cod-blue/60 hover:bg-cod-blue hover:text-black px-2.5 py-1.5 clip-btn flex items-center gap-1 text-xs font-mono text-cod-blue transition" title="下载 UMBRA 桌面图标与查看手机 App 安装方法">
+                    <span>📱App图标</span>
+                </button>
+
+                <!-- 夜视仪模式切换 (NVG) -->
+                <button id="nvgToggleBtn" class="bg-cod-bg/90 border border-cod-border hover:border-cod-green px-2 py-1.5 clip-btn flex items-center gap-1 text-xs font-mono text-slate-300 hover:text-cod-green" title="切换夜视仪光学滤镜 (NVG Mode)">
+                    <span>NVG</span>
+                </button>
+
+                <!-- 快捷静音开关 -->
+                <button id="soundToggleBtn" class="bg-cod-bg/90 border border-cod-green/60 px-2 py-1.5 clip-btn flex items-center gap-1 text-xs font-mono text-cod-green" title="快速静音/开启音效">
+                    <svg id="soundIconOn" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+                    </svg>
+                    <svg id="soundIconOff" class="w-3.5 h-3.5 hidden text-cod-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    <span id="soundStatusText" class="hidden md:inline">85%</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 指挥官战术无线电横幅 (中英文双语对照经典台词 // BILINGUAL OPERATOR COMMS BANNER) -->
+    <div class="max-w-6xl w-full mx-auto px-3 sm:px-6 pt-3">
+        <div class="bg-cod-panel/95 border border-cod-amber/60 clip-btn px-3.5 py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-[inset_0_0_25px_rgba(255,170,0,0.08)]">
+            <div class="flex items-start sm:items-center gap-3">
+                <!-- UMBRA 战术徽章缩略图 -->
+                <div class="w-11 h-11 rounded-full bg-black border border-cod-amber/70 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0 shadow-[0_0_10px_rgba(255,170,0,0.2)]">
+                    <img id="bannerUmbraIcon" alt="UMBRA" class="w-10 h-10 rounded-full object-contain" />
+                </div>
+                <div class="space-y-0.5">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span id="commsCallsignBadge" class="font-mono text-xs font-bold bg-cod-amber text-black px-1.5 py-0.2">GRAVES SHADOW 0-1</span>
+                        <span id="commsRoleLabel" class="font-mono text-[11px] text-cod-amber tracking-wider">// SHADOW COMPANY CEO & COMMANDER</span>
+                        <span id="quoteIndexLabel" class="font-mono text-[10px] text-slate-400 bg-cod-bg px-1.5 border border-cod-border">QUOTE #1/5</span>
+                    </div>
+                    <!-- 英文原版经典台词 -->
+                    <p id="commsVoiceLineEn" class="font-mono text-xs sm:text-sm text-cod-blue font-bold tracking-wide leading-snug">
+                        "Yup-yup! Shadow 0-1 actual. Hook 'em and book 'em — plate up and hydrate!"
+                    </p>
+                    <!-- 中文战术翻译对照 -->
+                    <p id="commsVoiceLineCn" class="text-xs sm:text-sm text-slate-200 font-medium leading-snug">
+                        “收到-收到！这里是暗影 0-1 指挥官。锁定目标，全速推进——插好水合装甲板，立即补水！”
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                <button id="nextQuoteBtn" class="bg-cod-bg hover:bg-cod-panelLight border border-cod-border hover:border-cod-blue text-slate-300 hover:text-cod-blue font-mono text-xs px-2.5 py-1.5 clip-btn transition" title="切换当前干员的下一句经典台词">
+                    🎲 换台词
+                </button>
+                <button id="testRadioCommsBtn" class="bg-cod-bg hover:bg-cod-amber hover:text-black border border-cod-amber/70 text-cod-amber font-mono text-xs font-bold px-3 py-1.5 clip-btn flex items-center gap-1">
+                    <span>📡 呼叫电台 [PTT]</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主体战术仪表盘 -->
+    <main class="max-w-6xl w-full mx-auto px-3 sm:px-6 py-4 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5">
+        
+        <!-- 左栏（占7列）：战区水合装甲板 + 空投补给打卡区 + 行动日志 -->
+        <div class="lg:col-span-7 flex flex-col gap-5">
+            
+            <!-- 模块 1：战区护甲风格补水进度条 (HYDRATION ARMOR PLATES) -->
+            <section class="bg-cod-panel/90 border border-cod-border clip-panel p-4 sm:p-5 relative overflow-hidden">
+                <!-- 十字准星角标装饰 -->
+                <span class="absolute top-1.5 left-2 font-mono text-[10px] text-slate-600">+</span>
+                <span class="absolute top-1.5 right-4 font-mono text-[10px] text-slate-600">+</span>
+                <span class="absolute bottom-1.5 left-4 font-mono text-[10px] text-slate-600">+</span>
+                <span class="absolute bottom-1.5 right-2 font-mono text-[10px] text-slate-600">+</span>
+
+                <!-- 标题栏与手动重置/调整目标按钮组 -->
+                <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-cod-border/80">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="inline-block w-2 h-4 bg-cod-blue shadow-[0_0_8px_#00d8ff]"></span>
+                            <h2 class="text-lg sm:text-xl font-bold tracking-wider text-white">战术水合装甲系统</h2>
+                            <span class="font-mono text-xs text-cod-blue">[WARZONE 2.0 ARMOR HUD]</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 mt-0.5 font-mono">每日 00:00 自动归档清零 // 也可随时点击右侧按钮手动重置今日进度</p>
+                    </div>
+
+                    <!-- 右侧操作按钮组：手动重置今日 + 调整目标 -->
+                    <div class="flex items-center gap-2">
+                        <button id="panelManualResetBtn" class="bg-cod-bg hover:bg-cod-red hover:text-black border border-cod-red/60 px-2.5 py-1.5 clip-btn text-xs font-mono text-cod-red font-bold flex items-center gap-1 transition" title="手动清空今日饮水量与护甲板">
+                            <span>🔄 手动重置今日</span>
+                        </button>
+                        <button id="openTargetModalBtn" class="bg-cod-bg hover:bg-cod-panelLight border border-cod-blue/50 hover:border-cod-blue px-2.5 py-1.5 clip-btn text-xs font-mono text-cod-blue flex items-center gap-1">
+                            <span>⚙️ 调整目标</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 手动重置内联确认横幅（默认隐藏，点击手动重置后展开） -->
+                <div id="inlineResetConfirmBar" class="hidden my-2.5 p-2.5 bg-cod-redDim border border-cod-red clip-btn flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 font-mono text-xs text-white">
+                        <span class="w-2 h-2 rounded-full bg-cod-red animate-ping"></span>
+                        <span>确认将今日饮水量 (<strong id="resetPreviewMl" class="text-cod-amber">0 ML</strong>) 与 8 格装甲板清零重置吗？</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="inlineResetConfirmYes" class="bg-cod-red text-black font-mono text-xs font-bold px-3 py-1 clip-btn">确认清零 // CONFIRM</button>
+                        <button id="inlineResetConfirmNo" class="bg-cod-bg border border-cod-border text-slate-300 font-mono text-xs px-3 py-1 clip-btn">取消</button>
+                    </div>
+                </div>
+
+                <!-- 核心数值与环形百分比仪表 -->
+                <div class="my-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-cod-bg/80 border border-cod-border/70 p-3.5 clip-btn">
+                    <div class="flex items-center gap-4">
+                        <!-- 护甲盾牌 SVG 图标 -->
+                        <div class="relative w-14 h-14 flex items-center justify-center bg-cod-panel border border-cod-blue/40 clip-btn shrink-0">
+                            <svg class="w-8 h-8 text-cod-blue drop-shadow-[0_0_8px_rgba(0,216,255,0.6)]" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm6 9.09c0 4-2.55 7.7-6 8.83-3.45-1.13-6-4.82-6-8.83v-4.7l6-2.25 6 2.25v4.7z"/>
+                                <path d="M12 6.5l-4 1.5v3.09c0 2.68 1.7 5.19 4 5.91 2.3-.72 4-3.23 4-5.91V8l-4-1.5z" opacity="0.65"/>
+                            </svg>
+                            <span id="activePlatesBadge" class="absolute -bottom-1 -right-1 bg-cod-blue text-black font-mono text-[10px] font-bold px-1.5 py-0.2">0/8</span>
+                        </div>
+                        <div>
+                            <div class="text-xs font-mono text-slate-400 tracking-wider">CURRENT INTAKE // 今日已补充水分</div>
+                            <div class="flex items-baseline gap-2 mt-0.5">
+                                <span id="currentIntakeDisplay" class="font-mono text-3xl sm:text-4xl font-bold text-cod-blue glow-blue">0</span>
+                                <span class="font-mono text-lg text-slate-400">/ <span id="targetIntakeDisplay">2000</span> ML</span>
+                            </div>
+                            <div id="remainingHintText" class="text-xs font-mono text-slate-400 mt-0.5">
+                                距离满护甲还需补充 <span class="text-white font-bold">2000</span> ml
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右侧大百分比读数 -->
+                    <div class="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto border-t sm:border-t-0 border-cod-border pt-2.5 sm:pt-0">
+                        <span class="text-[10px] font-mono text-slate-400 tracking-widest">ARMOR INTEGRITY</span>
+                        <div id="percentageDisplay" class="font-mono text-3xl sm:text-4xl font-bold text-cod-green glow-green">0%</div>
+                    </div>
+                </div>
+
+                <!-- 8格战区护甲槽 (8-SEGMENT ARMOR PLATES) -->
+                <div class="space-y-1.5">
+                    <div class="flex justify-between items-center text-xs font-mono text-slate-400">
+                        <span>[ ARMOR PLATE SLOTS // 每格代表 <span id="mlPerPlateDisplay" class="text-cod-blue">250</span> ML ]</span>
+                        <span id="plateStatusLabel" class="text-cod-blue">STANDBY</span>
+                    </div>
+                    
+                    <div id="armorPlatesContainer" class="grid grid-cols-8 gap-1.5 sm:gap-2.5 pt-1">
+                        <!-- 由 JS 动态渲染 8 个战术护甲格 -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 模块 2：空投补给快捷打卡区 (SUPPLY DROP INTAKE) -->
+            <section class="bg-cod-panel/90 border border-cod-border clip-panel p-4 sm:p-5 relative">
+                <div class="flex items-center justify-between pb-3 border-b border-cod-border/80">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="inline-block w-2 h-4 bg-cod-green shadow-[0_0_8px_#00ff66]"></span>
+                            <h2 class="text-lg sm:text-xl font-bold tracking-wider text-white">空投补给快捷装填</h2>
+                            <span class="font-mono text-xs text-cod-green">[INSERT ARMOR PLATE]</span>
+                        </div>
+                    </div>
+
+                    <!-- 撤回上一次补给按钮 -->
+                    <button id="undoIntakeBtn" disabled class="bg-cod-bg border border-cod-border hover:border-cod-amber disabled:opacity-40 disabled:pointer-events-none px-3 py-1 clip-btn text-xs font-mono text-slate-300 hover:text-cod-amber flex items-center gap-1 transition">
+                        <span>↩ 撤回补给 [UNDO]</span>
+                    </button>
+                </div>
+
+                <!-- 3个核心空投快捷按钮 -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 my-3.5">
+                    <!-- +150ml 战术小口 -->
+                    <button onclick="addHydration(150, '战术小口 // TACTICAL SIP', event)" class="group relative bg-cod-bg hover:bg-cod-panelLight border border-cod-border hover:border-cod-green p-3.5 clip-btn text-left flex sm:flex-col justify-between items-center sm:items-start gap-2 overflow-hidden">
+                        <div class="absolute top-0 right-0 px-2 py-0.5 bg-cod-border/60 group-hover:bg-cod-green group-hover:text-black font-mono text-[10px] transition-colors">
+                            SLOT 01
+                        </div>
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded bg-cod-greenDim border border-cod-green/40 flex items-center justify-center text-cod-green group-hover:scale-110 transition-transform">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3h6m-5 0v3l-3 4v9a2 2 0 002 2h6a2 2 0 002-2v-9l-3-4V3"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="text-[10px] font-mono text-slate-400">TACTICAL SIP</div>
+                                <div class="text-sm font-bold text-white">战术小口</div>
+                            </div>
+                        </div>
+                        <div class="font-mono text-2xl font-bold text-cod-green group-hover:translate-x-1 transition-transform">
+                            +150 <span class="text-xs font-normal text-slate-400">ML</span>
+                        </div>
+                    </button>
+
+                    <!-- +250ml 标准水合插板 -->
+                    <button onclick="addHydration(250, '标准护甲插板 // 1 PLATE', event)" class="group relative bg-cod-bg hover:bg-cod-panelLight border border-cod-blue/60 hover:border-cod-blue p-3.5 clip-btn text-left flex sm:flex-col justify-between items-center sm:items-start gap-2 overflow-hidden shadow-[inset_0_0_20px_rgba(0,216,255,0.06)]">
+                        <div class="absolute top-0 right-0 px-2 py-0.5 bg-cod-blue/20 text-cod-blue group-hover:bg-cod-blue group-hover:text-black font-mono text-[10px] font-bold transition-colors">
+                            1 PLATE
+                        </div>
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded bg-cod-blueDim border border-cod-blue/50 flex items-center justify-center text-cod-blue group-hover:scale-110 transition-transform">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="text-[10px] font-mono text-cod-blue">ARMOR PLATE</div>
+                                <div class="text-sm font-bold text-white">标准插板杯</div>
+                            </div>
+                        </div>
+                        <div class="font-mono text-2xl font-bold text-cod-blue glow-blue group-hover:translate-x-1 transition-transform">
+                            +250 <span class="text-xs font-normal text-slate-400">ML</span>
+                        </div>
+                    </button>
+
+                    <!-- +500ml 暗影重型空投 -->
+                    <button onclick="addHydration(500, '暗影重型空投 // SHADOW DROP', event)" class="group relative bg-cod-bg hover:bg-cod-panelLight border border-cod-border hover:border-cod-amber p-3.5 clip-btn text-left flex sm:flex-col justify-between items-center sm:items-start gap-2 overflow-hidden">
+                        <div class="absolute top-0 right-0 px-2 py-0.5 bg-cod-border/60 group-hover:bg-cod-amber group-hover:text-black font-mono text-[10px] transition-colors">
+                            2 PLATES
+                        </div>
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded bg-cod-amberDim border border-cod-amber/40 flex items-center justify-center text-cod-amber group-hover:scale-110 transition-transform">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="text-[10px] font-mono text-slate-400">SHADOW DROP</div>
+                                <div class="text-sm font-bold text-white">重型双甲空投</div>
+                            </div>
+                        </div>
+                        <div class="font-mono text-2xl font-bold text-cod-amber group-hover:translate-x-1 transition-transform">
+                            +500 <span class="text-xs font-normal text-slate-400">ML</span>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- 自定义补给毫升输入栏 -->
+                <div class="pt-2.5 border-t border-cod-border/60 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <div class="text-xs font-mono text-slate-400 shrink-0 flex items-center gap-1">
+                        <span class="text-cod-green">[CUSTOM]</span>
+                        <span>自定义装填:</span>
+                    </div>
+                    <div class="flex-1 flex items-center gap-2">
+                        <div class="relative flex-1">
+                            <input id="customMlInput" type="number" min="10" max="2000" step="10" placeholder="输入毫升数 (10 - 2000)" class="w-full bg-cod-bg border border-cod-border focus:border-cod-green outline-none px-3 py-1.5 font-mono text-sm text-white clip-btn" />
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-xs text-slate-500">ML</span>
+                        </div>
+                        <button id="customAddBtn" class="bg-cod-green/20 hover:bg-cod-green text-cod-green hover:text-black border border-cod-green px-4 py-1.5 clip-btn font-mono text-xs font-bold tracking-wider shrink-0">
+                            确认装填 // DEPLOY
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 模块 3：行动日志与数据持久化 (MISSION LOG) -->
+            <section class="bg-cod-panel/90 border border-cod-border clip-panel p-4 sm:p-5 flex-1 flex flex-col justify-between relative">
+                <div>
+                    <div class="flex items-center justify-between pb-2.5 border-b border-cod-border/80">
+                        <div class="flex items-center gap-2">
+                            <span class="inline-block w-2 h-4 bg-cod-blue"></span>
+                            <h2 class="text-base sm:text-lg font-bold tracking-wider text-white">今日战术行动日志</h2>
+                            <span class="font-mono text-xs text-slate-400">[SHADOW COMMS LOG]</span>
+                        </div>
+                        <span id="logCountBadge" class="font-mono text-xs text-cod-blue bg-cod-blueDim px-2 py-0.5">0 RECORDS</span>
+                    </div>
+
+                    <!-- 日志滚动列表 -->
+                    <div id="missionLogList" class="mt-2.5 space-y-1.5 max-h-40 overflow-y-auto pr-1 font-mono text-xs">
+                        <!-- 由 JS 动态渲染行动日志 -->
+                    </div>
+                </div>
+
+                <!-- 底部日期与重置今日任务按钮 -->
+                <div class="mt-3 pt-2.5 border-t border-cod-border/60 flex items-center justify-between">
+                    <span id="todayDateLabel" class="font-mono text-[11px] text-slate-400">DATE: ----/--/--</span>
+                    
+                    <div id="resetActionWrapper" class="flex items-center gap-2">
+                        <button id="requestResetDayBtn" class="text-xs font-mono text-cod-red hover:underline px-2 py-0.5 clip-btn transition">
+                            [🗑️ 清空今日记录]
+                        </button>
+                        <div id="confirmResetGroup" class="hidden flex items-center gap-1.5">
+                            <span class="text-[11px] font-mono text-cod-red">确认清零?</span>
+                            <button id="confirmResetYesBtn" class="bg-cod-red text-black font-mono text-xs font-bold px-2.5 py-0.5 clip-btn">确认</button>
+                            <button id="confirmResetNoBtn" class="bg-cod-bg border border-cod-border text-slate-300 font-mono text-xs px-2.5 py-0.5 clip-btn">取消</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- 右栏（占5列）：【新增执勤小日历板与计天数系统】 + 战术雷达定时提醒 + 【紧凑版战区音效台】 -->
+        <div class="lg:col-span-5 flex flex-col gap-4">
+
+            <!-- 模块 4（全新）：战术执勤小日历板与计天数系统 (TACTICAL DEPLOYMENT CALENDAR & DAY COUNTER) -->
+            <section class="bg-cod-panel/95 border border-cod-blue/60 clip-panel p-4 relative shadow-[0_0_20px_rgba(0,216,255,0.08)]">
+                <div class="flex items-center justify-between pb-2.5 border-b border-cod-border">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-block w-2 h-4 bg-cod-blue shadow-[0_0_8px_#00d8ff]"></span>
+                        <h2 class="text-base font-bold tracking-wider text-white">战术执勤日历与天数统计</h2>
+                    </div>
+                    <button id="simulateMidnightBtn" class="bg-cod-bg hover:bg-cod-amber hover:text-black border border-cod-amber/60 text-cod-amber font-mono text-[10px] font-bold px-2 py-0.5 clip-btn transition" title="立即模拟零点跨日自动归档并开启新一天">
+                        ⚡模拟零点刷新
+                    </button>
+                </div>
+
+                <!-- 计天数三大指标卡片 -->
+                <div class="grid grid-cols-3 gap-2 my-2.5 font-mono">
+                    <div class="bg-cod-bg border border-cod-border p-2 clip-btn text-center">
+                        <div class="text-[9px] text-slate-400">TOTAL DAYS // 累计执勤</div>
+                        <div class="text-lg font-bold text-cod-blue mt-0.5"><span id="statTotalDays">1</span> <span class="text-[10px] font-normal">天</span></div>
+                    </div>
+                    <div class="bg-cod-bg border border-cod-border p-2 clip-btn text-center">
+                        <div class="text-[9px] text-slate-400">STREAK // 连续满甲</div>
+                        <div class="text-lg font-bold text-cod-amber mt-0.5"><span id="statStreakDays">1</span> <span class="text-[10px] font-normal">天</span></div>
+                    </div>
+                    <div class="bg-cod-bg border border-cod-border p-2 clip-btn text-center">
+                        <div class="text-[9px] text-slate-400">MONTH // 本月满甲</div>
+                        <div class="text-lg font-bold text-cod-green mt-0.5"><span id="statMonthFullDays">0</span> <span class="text-[10px] font-normal">天</span></div>
+                    </div>
+                </div>
+
+                <!-- 日历月份切换栏 -->
+                <div class="flex items-center justify-between bg-cod-bg/90 border border-cod-border px-2.5 py-1 mb-2 font-mono text-xs">
+                    <button id="calPrevMonthBtn" class="text-slate-400 hover:text-cod-blue px-1.5 py-0.5">◀ 上月</button>
+                    <div class="flex items-center gap-2">
+                        <span id="calMonthLabel" class="font-bold text-white tracking-wider">2026-11</span>
+                        <button id="calTodayBtn" class="text-[10px] text-cod-blue hover:underline">[今]</button>
+                    </div>
+                    <button id="calNextMonthBtn" class="text-slate-400 hover:text-cod-blue px-1.5 py-0.5">下月 ▶</button>
+                </div>
+
+                <!-- 星期表头 (一 ~ 日) -->
+                <div class="grid grid-cols-7 gap-1 text-center font-mono text-[10px] text-slate-400 mb-1">
+                    <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span class="text-cod-amber">六</span><span class="text-cod-amber">日</span>
+                </div>
+
+                <!-- 7列迷你日历网格 -->
+                <div id="calendarGrid" class="grid grid-cols-7 gap-1 font-mono text-xs">
+                    <!-- 由 JS 动态渲染当月日期格子 -->
+                </div>
+
+                <!-- 图例与选中日期补签/状态检查栏 -->
+                <div class="mt-2.5 pt-2 border-t border-cod-border/60 flex flex-wrap items-center justify-between gap-2 font-mono text-[10px]">
+                    <div id="selectedDateInfo" class="text-slate-300 truncate">
+                        点击日历格子可查看或补签历史执勤记录
+                    </div>
+                    <button id="toggleSelectedDateMetBtn" class="hidden bg-cod-blueDim hover:bg-cod-blue hover:text-black border border-cod-blue/60 text-cod-blue px-2 py-0.5 clip-btn font-bold">
+                        补签满甲
+                    </button>
+                </div>
+            </section>
+            
+            <!-- 模块 5：战术雷达定时提醒系统 (RADAR COUNTDOWN TIMER) -->
+            <section class="bg-cod-panel/90 border border-cod-border clip-panel p-4 relative">
+                <div class="flex items-center justify-between pb-2.5 border-b border-cod-border/80">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-block w-2 h-4 bg-cod-green shadow-[0_0_8px_#00ff66]"></span>
+                        <h2 class="text-base font-bold tracking-wider text-white">战术声呐定时提醒</h2>
+                        <span class="font-mono text-[11px] text-cod-green">[UAV TIMER]</span>
+                    </div>
+                    <!-- 浏览器通知授权按钮 -->
+                    <button id="notifyPermBtn" class="text-[10px] font-mono bg-cod-bg border border-cod-border hover:border-cod-green px-2 py-0.5 clip-btn text-slate-300 hover:text-cod-green">
+                        开启桌面通讯
+                    </button>
+                </div>
+
+                <!-- 雷达圆盘 + 倒计时大数字 -->
+                <div class="my-3 flex items-center gap-3.5 bg-cod-bg/90 border border-cod-border p-3 clip-btn">
+                    <!-- 动态旋转声呐雷达 -->
+                    <div class="relative w-20 h-20 rounded-full border-2 border-cod-green/50 bg-[#06100b] flex items-center justify-center overflow-hidden shrink-0 shadow-[0_0_15px_rgba(0,255,102,0.15)]">
+                        <div class="absolute inset-2 rounded-full border border-cod-green/25"></div>
+                        <div class="absolute inset-5 rounded-full border border-cod-green/20"></div>
+                        <div class="absolute inset-x-0 h-[1px] bg-cod-green/25"></div>
+                        <div class="absolute inset-y-0 w-[1px] bg-cod-green/25"></div>
+                        <div id="radarSweepEl" class="absolute inset-0 rounded-full radar-sweep"></div>
+                        <span id="radarBlip1" class="w-1.5 h-1.5 rounded-full bg-cod-green shadow-[0_0_6px_#00ff66] absolute top-4 right-5 animate-ping"></span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-cod-green absolute"></span>
+                    </div>
+
+                    <!-- 倒计时读数 -->
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-mono text-slate-400 tracking-widest">NEXT HYDRATION DROP</span>
+                            <span id="timerStateTag" class="text-[10px] font-mono px-1.5 py-0.2 bg-cod-greenDim text-cod-green">ACTIVE</span>
+                        </div>
+                        <div id="countdownDisplay" class="font-mono text-2xl sm:text-3xl font-bold text-white tracking-wider my-0.5 glow-green">
+                            45:00
+                        </div>
+                        <div class="w-full h-1.5 bg-cod-panel border border-cod-border overflow-hidden">
+                            <div id="timerProgressBar" class="h-full bg-cod-green transition-all duration-300" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 预设提醒间隔选择 + 10秒战术测试 -->
+                <div class="space-y-1.5">
+                    <div class="text-[11px] font-mono text-slate-400 flex items-center justify-between">
+                        <span>巡航周期 [INTERVAL]:</span>
+                        <span id="currentIntervalLabel" class="text-cod-green">45 MIN</span>
+                    </div>
+                    <div class="grid grid-cols-5 gap-1.5 font-mono text-xs">
+                        <button onclick="setTimerInterval(30)" data-interval="30" class="interval-btn bg-cod-bg border border-cod-border hover:border-cod-green py-1.5 clip-btn text-slate-300">30m</button>
+                        <button onclick="setTimerInterval(45)" data-interval="45" class="interval-btn bg-cod-greenDim border border-cod-green py-1.5 clip-btn text-cod-green font-bold">45m</button>
+                        <button onclick="setTimerInterval(60)" data-interval="60" class="interval-btn bg-cod-bg border border-cod-border hover:border-cod-green py-1.5 clip-btn text-slate-300">60m</button>
+                        <button onclick="setTimerInterval(90)" data-interval="90" class="interval-btn bg-cod-bg border border-cod-border hover:border-cod-green py-1.5 clip-btn text-slate-300">90m</button>
+                        <!-- 10秒战术测试按钮 -->
+                        <button onclick="startTenSecondTest()" class="bg-cod-amberDim border border-cod-amber hover:bg-cod-amber hover:text-black py-1.5 clip-btn text-cod-amber font-bold transition" title="立即开启10秒倒计时以测试全屏呼叫">
+                            ⚡10s
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 开始 / 暂停 / 重置 控制按钮 -->
+                <div class="grid grid-cols-2 gap-2 mt-2.5 pt-2.5 border-t border-cod-border/60">
+                    <button id="toggleTimerBtn" class="bg-cod-green/20 hover:bg-cod-green text-cod-green hover:text-black border border-cod-green py-1.5 clip-btn font-mono text-xs font-bold tracking-wider transition">
+                        暂停雷达 // PAUSE
+                    </button>
+                    <button id="resetTimerBtn" class="bg-cod-bg hover:bg-cod-panelLight text-slate-300 hover:text-white border border-cod-border py-1.5 clip-btn font-mono text-xs tracking-wider transition">
+                        重置周期 // RESET
+                    </button>
+                </div>
+            </section>
+
+            <!-- 模块 6（紧凑精简版）：战区声学与音效迷你控制台 (COMPACT WARZONE AUDIO DECK) -->
+            <section id="audioConsolePanel" class="bg-cod-panel/95 border border-cod-amber/60 clip-panel p-3 relative">
+                <div class="flex items-center justify-between pb-1.5 border-b border-cod-border/80">
+                    <div class="flex items-center gap-1.5">
+                        <span class="inline-block w-2 h-3 bg-cod-amber"></span>
+                        <h2 class="text-sm font-bold tracking-wider text-white">战区音效迷你台</h2>
+                        <span id="audioEngineBadge" class="font-mono text-[9px] text-cod-green bg-cod-greenDim px-1">WZ-2.0</span>
+                    </div>
+                    <!-- 声学预设紧凑下拉 -->
+                    <select id="soundProfileSelect" class="bg-cod-bg border border-cod-border text-[10px] font-mono text-slate-200 px-1.5 py-0.5 clip-btn outline-none cursor-pointer">
+                        <option value="warzone2">战区2.0复合重甲</option>
+                        <option value="mw_crisp">现代战争高敏清脆</option>
+                    </select>
+                </div>
+
+                <!-- 紧凑单行音量推子 -->
+                <div class="my-2 flex items-center gap-2 font-mono text-[11px]">
+                    <span class="text-slate-400 shrink-0">VOL</span>
+                    <input id="volumeSlider" type="range" min="0" max="100" step="5" value="85" class="flex-1 accent-[#ffaa00] cursor-pointer h-1 bg-cod-bg" />
+                    <span id="volumePercentLabel" class="text-cod-amber font-bold w-9 text-right">85%</span>
+                </div>
+
+                <!-- 5合1迷你试听按钮条 -->
+                <div class="grid grid-cols-5 gap-1 font-mono text-[10px]">
+                    <button onclick="soundFX.playArmorPlateInsert(false)" class="bg-cod-bg hover:bg-cod-blueDim border border-cod-blue/50 text-cod-blue py-1 clip-btn text-center" title="试听插装甲板音效">🛡️插板</button>
+                    <button onclick="soundFX.playHitmarker()" class="bg-cod-bg hover:bg-cod-greenDim border border-cod-green/50 text-cod-green py-1 clip-btn text-center" title="试听命中反馈音效">⌖命中</button>
+                    <button onclick="soundFX.playRadioPTT()" class="bg-cod-bg hover:bg-cod-amberDim border border-cod-amber/50 text-cod-amber py-1 clip-btn text-center" title="试听加密电台按键音">📻电台</button>
+                    <button onclick="soundFX.playArmorBreakAlarm()" class="bg-cod-bg hover:bg-cod-redDim border border-cod-red/50 text-cod-red py-1 clip-btn text-center" title="试听战区破甲警报">💥破甲</button>
+                    <button onclick="soundFX.playArmorPlateInsert(true)" class="bg-cod-bg hover:bg-cod-panelLight border border-cod-border text-slate-200 py-1 clip-btn text-center" title="试听100%满甲晋升音效">🎖️满甲</button>
+                </div>
+
+                <!-- 折叠式自定义原声挂载抽屉 -->
+                <details class="mt-2 pt-1.5 border-t border-cod-border/50 font-mono text-[10px]">
+                    <summary class="cursor-pointer text-slate-400 hover:text-cod-amber flex items-center justify-between select-none">
+                        <span>📂 挂载本地战区原声 (.mp3/.wav)</span>
+                        <button id="clearCustomAudioBtn" type="button" class="hidden text-cod-red hover:underline">[恢复默认]</button>
+                    </summary>
+                    <div class="grid grid-cols-2 gap-1.5 mt-1.5">
+                        <label class="bg-cod-bg hover:bg-cod-panelLight border border-dashed border-cod-border p-1.5 clip-btn cursor-pointer text-center truncate">
+                            <span id="customPlateFileLabel" class="text-slate-300">替换“插板”声</span>
+                            <input id="customPlateAudioInput" type="file" accept="audio/*" class="hidden" />
+                        </label>
+                        <label class="bg-cod-bg hover:bg-cod-panelLight border border-dashed border-cod-border p-1.5 clip-btn cursor-pointer text-center truncate">
+                            <span id="customAlertFileLabel" class="text-slate-300">替换“警报”声</span>
+                            <input id="customAlertAudioInput" type="file" accept="audio/*" class="hidden" />
+                        </label>
+                    </div>
+                </details>
+            </section>
+        </div>
+    </main>
+
+    <!-- 底部战术状态角标 -->
+    <footer class="border-t border-cod-border/60 bg-cod-bg/90 py-2.5 px-4 text-center font-mono text-[11px] text-slate-500 flex flex-wrap items-center justify-between max-w-6xl w-full mx-auto">
+        <span>SYSTEM: UMBRA SHADOW COMPANY BIO-HUD v4.0 // AUTO-RESET @ 00:00 LOCAL</span>
+        <span>[ YUP-YUP! STAY FROSTY, KEEP PLATING UP // 保持警惕，按时打甲补水 ]</span>
+    </footer>
+
+    <!-- ====================================================== -->
+    <!-- 弹窗 1：每日水合装甲目标校准模态框 (TARGET CALIBRATION) -->
+    <!-- ====================================================== -->
+    <div id="targetModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-cod-panel border-2 border-cod-blue max-w-md w-full clip-panel p-5 relative shadow-[0_0_45px_rgba(0,216,255,0.25)]">
+            <div class="flex items-center justify-between pb-3 border-b border-cod-border">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-4 bg-cod-blue"></span>
+                    <h3 class="text-lg font-bold text-white tracking-wider">校准每日水合装甲目标</h3>
+                </div>
+                <span class="font-mono text-xs text-cod-blue">[CALIBRATION]</span>
+            </div>
+
+            <div class="my-5 space-y-4">
+                <div class="bg-cod-bg border border-cod-border p-3.5 text-center clip-btn">
+                    <div class="font-mono text-xs text-slate-400">DAILY TARGET // 每日目标总水量</div>
+                    <div class="font-mono text-3xl font-bold text-cod-blue glow-blue my-1">
+                        <span id="modalTargetPreview">2000</span> <span class="text-sm font-normal text-slate-400">ML</span>
+                    </div>
+                    <div class="font-mono text-[11px] text-slate-400">
+                        折合每格护甲板容量: <span id="modalPlatePreview" class="text-cod-green font-bold">250</span> ML × 8 格
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <input id="targetRangeSlider" type="range" min="1200" max="4000" step="100" value="2000" class="w-full accent-[#00d8ff] cursor-pointer" />
+                    <div class="flex justify-between font-mono text-[10px] text-slate-400">
+                        <span>1200 ML (轻装)</span>
+                        <span>2000 ML (标准)</span>
+                        <span>3000 ML (重装)</span>
+                        <span>4000 ML (极限)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-3 border-t border-cod-border font-mono text-xs">
+                <button id="closeTargetModalBtn" class="bg-cod-bg border border-cod-border text-slate-300 px-4 py-1.5 clip-btn">
+                    取消 // CANCEL
+                </button>
+                <button id="saveTargetBtn" class="bg-cod-blue text-black font-bold px-5 py-1.5 clip-btn">
+                    锁定目标 // LOCK IN
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================== -->
+    <!-- 弹窗 3（新增）：UMBRA 手机桌面图标下载与 App 封装指南模态框 -->
+    <!-- ========================================================== -->
+    <div id="appExportModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-cod-panel border-2 border-cod-amber max-w-lg w-full clip-panel p-5 relative shadow-[0_0_50px_rgba(255,170,0,0.25)]">
+            <div class="flex items-center justify-between pb-3 border-b border-cod-border">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-4 bg-cod-amber"></span>
+                    <h3 class="text-lg font-bold text-white tracking-wider">UMBRA 桌面图标与手机 App 导出</h3>
+                </div>
+                <span class="font-mono text-xs text-cod-amber">[PWA / APK / iOS]</span>
+            </div>
+
+            <div class="my-4 flex flex-col sm:flex-row items-center gap-4 bg-cod-bg p-3.5 border border-cod-border clip-btn">
+                <img id="modalUmbraPreviewImg" alt="UMBRA App Icon" class="w-24 h-24 rounded-2xl border border-cod-amber/60 shadow-[0_0_20px_rgba(255,170,0,0.25)] shrink-0" />
+                <div class="space-y-2 text-center sm:text-left">
+                    <div class="font-mono text-xs text-cod-amber font-bold">UMBRA TACTICAL EMBLEM (512×512 PNG)</div>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        已自动将您上传的 <strong>UMBRA 战车闪电徽章</strong> 绑定为当前网页的 iOS / Android 主屏幕图标与 PWA 清单图标。
+                    </p>
+                    <a id="downloadUmbraIconLink" download="umbra-app-icon-512.png" href="#" class="inline-block bg-cod-amber text-black font-mono text-xs font-bold px-3.5 py-1.5 clip-btn hover:brightness-110">
+                        ⬇ 下载 512×512 高清图标 (用于APK打包)
+                    </a>
+                </div>
+            </div>
+
+            <div class="space-y-2.5 text-xs text-slate-300 font-mono bg-cod-bg/70 p-3.5 border border-cod-border">
+                <div class="text-cod-blue font-bold">// 方案 A：免打包直接安装到 iOS / 安卓桌面 (推荐)</div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">
+                    • <strong>iOS (Safari)</strong>：点击底部“分享”按钮 ➔ 选择<strong>“添加到主屏幕”</strong>，桌面即生成 UMBRA 徽章全屏 App。<br/>
+                    • <strong>Android (Chrome/Edge)</strong>：点击右上角菜单 ➔ 选择<strong>“添加到主屏幕”</strong>或<strong>“安装应用”</strong>。
+                </p>
+                <div class="text-cod-green font-bold pt-1">// 方案 B：使用 HBuilderX / WebIntoApp 导出独立安装包</div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">
+                    点击上方按钮下载 <code>umbra-app-icon-512.png</code> 作为应用图标，将本 HTML 文件放入 HBuilderX 或 WebIntoApp 即可一键生成安卓 <code>.apk</code> 安装包。
+                </p>
+            </div>
+
+            <div class="flex justify-end pt-3 mt-3 border-t border-cod-border">
+                <button id="closeAppExportModalBtn" class="bg-cod-blue text-black font-bold px-5 py-1.5 clip-btn font-mono text-xs">
+                    明白 // COPY THAT
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- 弹窗 2：全屏 HUD 指挥部紧急补水呼叫警报 (HQ ALERT MODAL) -->
+    <!-- ====================================================== -->
+    <div id="hqAlertModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden items-center justify-center p-4 alert-screen-flash">
+        <!-- 顶部与底部红色斜纹警戒带 -->
+        <div class="fixed top-0 inset-x-0 h-6 hazard-stripes-red border-b border-cod-red flex items-center justify-center font-mono text-[11px] text-cod-red tracking-[0.3em] font-bold">
+            WARNING // ARMOR BROKEN & DEHYDRATION DETECTED // SHADOW 0-1 PRIORITY
+        </div>
+        <div class="fixed bottom-0 inset-x-0 h-6 hazard-stripes-red border-t border-cod-red flex items-center justify-center font-mono text-[11px] text-cod-red tracking-[0.3em] font-bold">
+            ENCRYPTED TRANSMISSION FROM SHADOW COMPANY ACTUAL // GRAVES SHADOW 0-1
+        </div>
+
+        <!-- 中心战术通讯弹窗 -->
+        <div class="bg-cod-panel border-2 border-cod-red max-w-lg w-full clip-panel p-6 relative shadow-[0_0_70px_rgba(255,51,51,0.45)]">
+            <div class="flex items-center justify-between pb-3 border-b border-cod-red/50">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-3 h-3 rounded-full bg-cod-red animate-ping"></span>
+                    <span id="alertHeaderCallsign" class="font-mono text-xs text-cod-red tracking-widest font-bold">[GRAVES SHADOW 0-1 // 暗影指挥部紧急呼叫]</span>
+                </div>
+                <span class="font-mono text-xs bg-cod-red text-black font-bold px-2 py-0.5">ARMOR BROKEN!</span>
+            </div>
+
+            <div class="my-6 text-center space-y-3">
+                <div class="w-16 h-16 mx-auto rounded-full bg-cod-redDim border border-cod-red flex items-center justify-center text-cod-red">
+                    <svg class="w-9 h-9 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+
+                <h3 class="text-2xl sm:text-3xl font-black tracking-wider text-white">
+                    水合护甲已破裂，立即打甲补水！
+                </h3>
+                <p id="alertCommanderQuote" class="font-mono text-xs sm:text-sm text-cod-amber bg-cod-bg/90 border border-cod-amber/40 p-3 clip-btn leading-relaxed">
+                    "这里是 Graves Shadow 0-1！你的水合护甲板已经见底了，别在我的战区里脱水倒下，立刻拿起水杯装填护甲！YUP-YUP!"
+                </p>
+            </div>
+
+            <!-- 快捷响应行动按钮 -->
+            <div class="space-y-2.5">
+                <button id="alertDrink250Btn" class="w-full bg-cod-green hover:bg-[#33ff85] text-black font-bold py-3.5 px-4 clip-btn font-mono text-sm tracking-wider flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(0,255,102,0.5)]">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <span>收到指令，立即打甲 (+250ml) // PLATE UP</span>
+                </button>
+
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button id="alertDrink150Btn" class="bg-cod-bg hover:bg-cod-panelLight border border-cod-blue text-cod-blue py-2.5 px-3 clip-btn font-mono text-xs font-bold">
+                        轻度补给 (+150ml)
+                    </button>
+                    <button id="alertSnoozeBtn" class="bg-cod-bg hover:bg-cod-panelLight border border-cod-amber text-cod-amber py-2.5 px-3 clip-btn font-mono text-xs font-bold">
+                        请求延后 5 分钟 // SNOOZE
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript 核心逻辑与战区 2.0 拟真多段声学合成引擎 -->
+    <script>
+        /**************************************************************
+         * 1. 战区 2.0 多层拟真战术音效合成引擎 (Warzone 2.0 Multi-Layer Synth)
+         **************************************************************/
+        class TacticalSoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+                this.volume = 0.85;
+                this.profile = 'warzone2'; // 'warzone2' | 'mw_crisp'
+                this.alertBeepInterval = null;
+                this.noiseBuffer = null;
+                // 支持用户上传自定义原声替换
+                this.customPlateAudioUrl = null;
+                this.customAlertAudioUrl = null;
+            }
+
+            initContext() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) {
+                        this.ctx = new AudioCtx();
+                        this.createNoiseBuffer();
+                    }
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            // 创建高密度白噪采样缓存（用于模拟战术背心尼龙摩擦、陶瓷破甲碎片、电台静噪、Hitmarker瞬态）
+            createNoiseBuffer() {
+                if (!this.ctx) return;
+                const bufferSize = this.ctx.sampleRate * 1.5;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                this.noiseBuffer = buffer;
+            }
+
+            // 1. 还原《使命召唤》标志性 Hitmarker 命中反馈声 ("哒-嚓" 高频瞬态双连击)
+            playHitmarker() {
+                if (!this.enabled || this.volume <= 0) return;
+                this.initContext();
+                if (!this.ctx || !this.noiseBuffer) return;
+
+                const now = this.ctx.currentTime;
+                const vol = this.volume;
+
+                // 双脉冲极短促高频噪声 (0ms 主击中 + 16ms 次级回响)
+                [0, 0.016].forEach((offset, idx) => {
+                    const noise = this.ctx.createBufferSource();
+                    noise.buffer = this.noiseBuffer;
+
+                    const hpFilter = this.ctx.createBiquadFilter();
+                    hpFilter.type = 'highpass';
+                    hpFilter.frequency.setValueAtTime(this.profile === 'mw_crisp' ? 4200 : 3400, now + offset);
+
+                    const bpFilter = this.ctx.createBiquadFilter();
+                    bpFilter.type = 'bandpass';
+                    bpFilter.frequency.setValueAtTime(5600, now + offset);
+                    bpFilter.Q.setValueAtTime(1.8, now + offset);
+
+                    const gain = this.ctx.createGain();
+                    const peak = (idx === 0 ? 0.55 : 0.28) * vol;
+                    gain.gain.setValueAtTime(peak, now + offset);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.022);
+
+                    noise.connect(hpFilter);
+                    hpFilter.connect(bpFilter);
+                    bpFilter.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    noise.start(now + offset);
+                    noise.stop(now + offset + 0.024);
+                });
+
+                // 底层微弱胸腔闷响 (195Hz -> 70Hz, 20ms)
+                const punchOsc = this.ctx.createOscillator();
+                const punchGain = this.ctx.createGain();
+                punchOsc.type = 'triangle';
+                punchOsc.frequency.setValueAtTime(195, now);
+                punchOsc.frequency.exponentialRampToValueAtTime(68, now + 0.025);
+                punchGain.gain.setValueAtTime(0.22 * vol, now);
+                punchGain.gain.exponentialRampToValueAtTime(0.001, now + 0.026);
+                punchOsc.connect(punchGain);
+                punchGain.connect(this.ctx.destination);
+                punchOsc.start(now);
+                punchOsc.stop(now + 0.028);
+            }
+
+            // 兼容旧版调用名
+            playClick() {
+                this.playHitmarker();
+            }
+
+            // 2. 还原《战区 2.0》插防弹装甲板三段式复合拟真音效 (Cloth Zip -> Ceramic Thud -> HUD Lock Chime)
+            playArmorPlateInsert(isGoalComplete = false) {
+                if (!this.enabled || this.volume <= 0) return;
+
+                // 如果用户上传了自定义“插装甲板”原声文件，优先播放原声
+                if (this.customPlateAudioUrl) {
+                    const customAudio = new Audio(this.customPlateAudioUrl);
+                    customAudio.volume = Math.min(1, this.volume);
+                    customAudio.play().catch(e => console.warn(e));
+                    return;
+                }
+
+                this.initContext();
+                if (!this.ctx || !this.noiseBuffer) return;
+
+                const now = this.ctx.currentTime;
+                const vol = this.volume;
+
+                // === 第一阶段 (0ms - 135ms): 战术背心尼龙插袋摩擦声 (Bandpass Filtered Noise Sweep) ===
+                const slideNoise = this.ctx.createBufferSource();
+                slideNoise.buffer = this.noiseBuffer;
+
+                const slideFilter = this.ctx.createBiquadFilter();
+                slideFilter.type = 'bandpass';
+                slideFilter.Q.setValueAtTime(3.2, now);
+                slideFilter.frequency.setValueAtTime(820, now);
+                slideFilter.frequency.exponentialRampToValueAtTime(2450, now + 0.12);
+
+                const slideGain = this.ctx.createGain();
+                slideGain.gain.setValueAtTime(0.01, now);
+                slideGain.gain.linearRampToValueAtTime(0.32 * vol, now + 0.035);
+                slideGain.gain.exponentialRampToValueAtTime(0.005, now + 0.135);
+
+                slideNoise.connect(slideFilter);
+                slideFilter.connect(slideGain);
+                slideGain.connect(this.ctx.destination);
+                slideNoise.start(now);
+                slideNoise.stop(now + 0.14);
+
+                // === 第二阶段 (135ms - 330ms): 重型复合防弹插板落位闷响 + 胸挂卡扣机械撞击 ===
+                const thudStart = now + 0.135;
+                const thudOsc = this.ctx.createOscillator();
+                const thudGain = this.ctx.createGain();
+                thudOsc.type = 'sine';
+                thudOsc.frequency.setValueAtTime(165, thudStart);
+                thudOsc.frequency.exponentialRampToValueAtTime(44, thudStart + 0.16);
+                thudGain.gain.setValueAtTime(0.65 * vol, thudStart);
+                thudGain.gain.exponentialRampToValueAtTime(0.001, thudStart + 0.18);
+                thudOsc.connect(thudGain);
+                thudGain.connect(this.ctx.destination);
+                thudOsc.start(thudStart);
+                thudOsc.stop(thudStart + 0.19);
+
+                // 机械卡扣硬质撞击声 (Clack)
+                const clackNoise = this.ctx.createBufferSource();
+                clackNoise.buffer = this.noiseBuffer;
+                const clackFilter = this.ctx.createBiquadFilter();
+                clackFilter.type = 'bandpass';
+                clackFilter.frequency.setValueAtTime(1150, thudStart + 0.02);
+                clackFilter.Q.setValueAtTime(2.5, thudStart + 0.02);
+                const clackGain = this.ctx.createGain();
+                clackGain.gain.setValueAtTime(0.42 * vol, thudStart + 0.02);
+                clackGain.gain.exponentialRampToValueAtTime(0.002, thudStart + 0.085);
+                clackNoise.connect(clackFilter);
+                clackFilter.connect(clackGain);
+                clackGain.connect(this.ctx.destination);
+                clackNoise.start(thudStart + 0.02);
+                clackNoise.stop(thudStart + 0.09);
+
+                // === 第三阶段 (310ms - 550ms): 战区 HUD 蓝甲锁定高科金属双音提示 (Armor Bar Latch Chime) ===
+                const chimeStart = now + 0.30;
+                const chimeFreqs = this.profile === 'mw_crisp' ? [1760, 2637] : [1480, 2217.46];
+                chimeFreqs.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = idx === 0 ? 'triangle' : 'sine';
+                    const t = chimeStart + idx * 0.045;
+                    osc.frequency.setValueAtTime(freq, t);
+                    gain.gain.setValueAtTime(0.24 * vol, t);
+                    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(t);
+                    osc.stop(t + 0.23);
+                });
+
+                // 若达成100%每日目标，附加使命召唤军阶晋升重低音与金属和弦 (Rank Up Stinger)
+                if (isGoalComplete) {
+                    const stingerStart = now + 0.48;
+                    // 晋升重低音轰鸣 (Sub-Bass Drop)
+                    const subOsc = this.ctx.createOscillator();
+                    const subGain = this.ctx.createGain();
+                    subOsc.type = 'sawtooth';
+                    subOsc.frequency.setValueAtTime(110, stingerStart);
+                    subOsc.frequency.exponentialRampToValueAtTime(38, stingerStart + 0.75);
+                    subGain.gain.setValueAtTime(0.35 * vol, stingerStart);
+                    subGain.gain.exponentialRampToValueAtTime(0.001, stingerStart + 0.8);
+                    subOsc.connect(subGain);
+                    subGain.connect(this.ctx.destination);
+                    subOsc.start(stingerStart);
+                    subOsc.stop(stingerStart + 0.82);
+
+                    // 晋升铜管/合成金属和弦
+                    const notes = [440, 554.37, 659.25, 880];
+                    notes.forEach((freq, idx) => {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'triangle';
+                        const t = stingerStart + idx * 0.055;
+                        osc.frequency.setValueAtTime(freq, t);
+                        gain.gain.setValueAtTime(0.22 * vol, t);
+                        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.75);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(t);
+                        osc.stop(t + 0.78);
+                    });
+                }
+            }
+
+            // 3. 还原暗影公司军用加密无线电 PTT 按键音 (Motorola Talk-Permit Chirp + Squelch Tail)
+            playRadioPTT() {
+                if (!this.enabled || this.volume <= 0) return;
+                this.initContext();
+                if (!this.ctx || !this.noiseBuffer) return;
+
+                const now = this.ctx.currentTime;
+                const vol = this.volume;
+
+                // 开头无线电静噪切入 (Squelch Click)
+                const squelch = this.ctx.createBufferSource();
+                squelch.buffer = this.noiseBuffer;
+                const bp = this.ctx.createBiquadFilter();
+                bp.type = 'bandpass';
+                bp.frequency.setValueAtTime(2100, now);
+                bp.Q.setValueAtTime(1.5, now);
+                const sGain = this.ctx.createGain();
+                sGain.gain.setValueAtTime(0.18 * vol, now);
+                sGain.gain.exponentialRampToValueAtTime(0.01, now + 0.045);
+                squelch.connect(bp);
+                bp.connect(sGain);
+                sGain.connect(this.ctx.destination);
+                squelch.start(now);
+                squelch.stop(now + 0.05);
+
+                // 美军数字加密电台经典三连 TPT 蜂鸣 (1850Hz -> 1850Hz -> 2480Hz)
+                const chirps = [
+                    { freq: 1850, start: 0.05, dur: 0.024 },
+                    { freq: 1850, start: 0.085, dur: 0.024 },
+                    { freq: 2480, start: 0.12, dur: 0.038 }
+                ];
+                chirps.forEach(c => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(c.freq, now + c.start);
+                    gain.gain.setValueAtTime(0.26 * vol, now + c.start);
+                    gain.gain.exponentialRampToValueAtTime(0.005, now + c.start + c.dur);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + c.start);
+                    osc.stop(now + c.start + c.dur + 0.005);
+                });
+            }
+
+            // 4. 还原战区破甲碎裂声 + 指挥部紧急脱水警报 (Armor Break Shatter + Tactical Klaxon)
+            playArmorBreakAlarm() {
+                if (!this.enabled || this.volume <= 0) return;
+
+                // 若用户上传了自定义警报音频，优先播放
+                if (this.customAlertAudioUrl) {
+                    const customAudio = new Audio(this.customAlertAudioUrl);
+                    customAudio.volume = Math.min(1, this.volume);
+                    customAudio.play().catch(e => console.warn(e));
+                    return;
+                }
+
+                this.initContext();
+                if (!this.ctx || !this.noiseBuffer) return;
+
+                const now = this.ctx.currentTime;
+                const vol = this.volume;
+
+                // 破甲陶瓷碎裂声 (高频噪声爆发 + 重低音冲击)
+                const shatter = this.ctx.createBufferSource();
+                shatter.buffer = this.noiseBuffer;
+                const hp = this.ctx.createBiquadFilter();
+                hp.type = 'highpass';
+                hp.frequency.setValueAtTime(2200, now);
+                const shGain = this.ctx.createGain();
+                shGain.gain.setValueAtTime(0.55 * vol, now);
+                shGain.gain.exponentialRampToValueAtTime(0.002, now + 0.24);
+                shatter.connect(hp);
+                hp.connect(shGain);
+                shGain.connect(this.ctx.destination);
+                shatter.start(now);
+                shatter.stop(now + 0.25);
+
+                // 破甲重低音震荡 (Sub Impact)
+                const impactOsc = this.ctx.createOscillator();
+                const impactGain = this.ctx.createGain();
+                impactOsc.type = 'sawtooth';
+                impactOsc.frequency.setValueAtTime(150, now);
+                impactOsc.frequency.exponentialRampToValueAtTime(34, now + 0.26);
+                impactGain.gain.setValueAtTime(0.5 * vol, now);
+                impactGain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+                impactOsc.connect(impactGain);
+                impactGain.connect(this.ctx.destination);
+                impactOsc.start(now);
+                impactOsc.stop(now + 0.29);
+
+                // 紧随其后的战术电台双频紧急呼叫声
+                [0.28, 0.46].forEach(offset => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(960, now + offset);
+                    osc.frequency.setValueAtTime(1380, now + offset + 0.065);
+                    gain.gain.setValueAtTime(0.2 * vol, now + offset);
+                    gain.gain.exponentialRampToValueAtTime(0.005, now + offset + 0.14);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + offset);
+                    osc.stop(now + offset + 0.15);
+                });
+            }
+
+            // 撤回音效
+            playUndo() {
+                if (!this.enabled || this.volume <= 0) return;
+                this.initContext();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(480, now);
+                osc.frequency.exponentialRampToValueAtTime(160, now + 0.18);
+                gain.gain.setValueAtTime(0.22 * this.volume, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.19);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+
+            startAlertLoop() {
+                this.stopAlertLoop();
+                this.playArmorBreakAlarm();
+                this.alertBeepInterval = setInterval(() => {
+                    this.playRadioPTT();
+                }, 2500);
+            }
+
+            stopAlertLoop() {
+                if (this.alertBeepInterval) {
+                    clearInterval(this.alertBeepInterval);
+                    this.alertBeepInterval = null;
+                }
+            }
+        }
+
+        const soundFX = new TacticalSoundEngine();
+
+        /**************************************************************
+         * 1.5 UMBRA 徽章 512x512 高清图标生成器与 PWA Manifest 注入
+         **************************************************************/
+        function initUmbraAppIconAndPWA() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            // 1. 绘制黑色圆底与灰色外环
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(256, 256, 248, 0, Math.PI * 2);
+            ctx.fillStyle = '#070708';
+            ctx.fill();
+            ctx.lineWidth = 14;
+            ctx.strokeStyle = '#686b70';
+            ctx.stroke();
+
+            // 2. 次外层深灰环
+            ctx.beginPath();
+            ctx.arc(256, 256, 212, 0, Math.PI * 2);
+            ctx.lineWidth = 16;
+            ctx.strokeStyle = '#26272b';
+            ctx.stroke();
+
+            // 3. 内部横条纹底圆 (圆心 256, 272, 半径 162)
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(256, 272, 162, 0, Math.PI * 2);
+            ctx.clip();
+
+            ctx.fillStyle = '#1b1c1f';
+            ctx.fillRect(80, 100, 352, 350);
+
+            ctx.fillStyle = '#7e8187';
+            for (let y = 116; y < 430; y += 38) {
+                ctx.fillRect(80, y, 352, 19);
+            }
+            ctx.restore();
+
+            // 内部白色圆环边框
+            ctx.beginPath();
+            ctx.arc(256, 272, 162, 0, Math.PI * 2);
+            ctx.lineWidth = 8;
+            ctx.strokeStyle = '#ffffff';
+            ctx.stroke();
+
+            // 4. 顶部弧形文字 "UMBRA"
+            const letters = ['U', 'M', 'B', 'R', 'A'];
+            const angles = [-0.36, -0.18, 0, 0.18, 0.36];
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '900 48px "Rajdhani", Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            letters.forEach((ch, idx) => {
+                ctx.save();
+                ctx.translate(256, 272);
+                ctx.rotate(angles[idx]);
+                ctx.fillText(ch, 0, -196);
+                ctx.restore();
+            });
+
+            // 5. 左右对称白色闪电
+            function drawBolt(isRight) {
+                ctx.save();
+                ctx.translate(256, 272);
+                if (isRight) ctx.scale(-1, 1);
+                ctx.beginPath();
+                ctx.moveTo(-175, -105);
+                ctx.lineTo(-82, -22);
+                ctx.lineTo(-125, -22);
+                ctx.lineTo(-56, 42);
+                ctx.lineTo(-104, 42);
+                ctx.lineTo(-42, 114);
+                ctx.lineTo(-136, 24);
+                ctx.lineTo(-94, 24);
+                ctx.lineTo(-162, -38);
+                ctx.lineTo(-114, -38);
+                ctx.closePath();
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+                ctx.restore();
+            }
+            drawBolt(false);
+            drawBolt(true);
+
+            // 6. 中央国际象棋城堡战车 (Rook) 黑底白边
+            ctx.save();
+            ctx.fillStyle = '#0d0e11';
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 8;
+            ctx.lineJoin = 'round';
+
+            // 顶部城垛
+            ctx.beginPath();
+            ctx.moveTo(202, 132);
+            ctx.lineTo(224, 132);
+            ctx.lineTo(224, 154);
+            ctx.lineTo(244, 154);
+            ctx.lineTo(244, 132);
+            ctx.lineTo(268, 132);
+            ctx.lineTo(268, 154);
+            ctx.lineTo(288, 154);
+            ctx.lineTo(288, 132);
+            ctx.lineTo(310, 132);
+            ctx.lineTo(310, 182);
+            ctx.lineTo(294, 198);
+            ctx.lineTo(294, 214);
+            ctx.lineTo(218, 214);
+            ctx.lineTo(218, 198);
+            ctx.lineTo(202, 182);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // 颈部环圈
+            ctx.fillRect(220, 216, 72, 18);
+            ctx.strokeRect(220, 216, 72, 18);
+
+            // 塔身柱体
+            ctx.beginPath();
+            ctx.moveTo(226, 236);
+            ctx.lineTo(286, 236);
+            ctx.lineTo(296, 338);
+            ctx.lineTo(216, 338);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // 底座上层
+            ctx.fillRect(204, 340, 104, 24);
+            ctx.strokeRect(204, 340, 104, 24);
+
+            // 底座下层
+            ctx.fillRect(190, 368, 132, 28);
+            ctx.strokeRect(190, 368, 132, 28);
+            ctx.restore();
+            ctx.restore();
+
+            const pngDataUrl = canvas.toDataURL('image/png');
+
+            // 绑定到 Favicon、Apple Touch Icon 与页面预览
+            const fav = document.getElementById('dynamicFavicon');
+            const appleIcon = document.getElementById('dynamicAppleIcon');
+            const bannerImg = document.getElementById('bannerUmbraIcon');
+            const modalImg = document.getElementById('modalUmbraPreviewImg');
+            const dlLink = document.getElementById('downloadUmbraIconLink');
+
+            if (fav) fav.href = pngDataUrl;
+            if (appleIcon) appleIcon.href = pngDataUrl;
+            if (bannerImg) bannerImg.src = pngDataUrl;
+            if (modalImg) modalImg.src = pngDataUrl;
+            if (dlLink) dlLink.href = pngDataUrl;
+
+            // 动态生成 PWA Manifest Blob
+            const manifestObj = {
+                name: 'UMBRA 使命召唤战术补水终端',
+                short_name: 'UMBRA补水',
+                description: 'Call of Duty Warzone Tactical Hydration HUD Terminal',
+                start_url: '.',
+                display: 'standalone',
+                background_color: '#0b0f12',
+                theme_color: '#0b0f12',
+                icons: [
+                    {
+                        src: pngDataUrl,
+                        sizes: '512x512',
+                        type: 'image/png',
+                        purpose: 'any maskable'
+                    }
+                ]
+            };
+            const blob = new Blob([JSON.stringify(manifestObj)], { type: 'application/json' });
+            const manifestUrl = URL.createObjectURL(blob);
+            const manifestLink = document.getElementById('dynamicManifest');
+            if (manifestLink) manifestLink.href = manifestUrl;
+        }
+
+        /**************************************************************
+         * 2. 特战干员数据库（含 Graves Shadow 0-1 与 Gaz Bravo 2-6 及中英双语经典台词）
+         **************************************************************/
+        const STORAGE_KEY = 'COD_TACTICAL_HYDRATION_V3';
+
+        const OPERATORS_DATA = [
+            {
+                callsign: 'Graves Shadow 0-1',
+                faction: 'SHADOW COMPANY // 暗影公司指挥部',
+                role: 'SHADOW COMPANY CEO & ACTUAL (菲利普·格雷夫斯)',
+                bilingualQuotes: [
+                    {
+                        en: `"Yup-yup! Shadow 0-1 actual. Hook 'em and book 'em — plate up and hydrate!"`,
+                        cn: `“收到-收到！这里是暗影 0-1 指挥官。锁定目标，全速推进——插好水合装甲板，立即补水！”`
+                    },
+                    {
+                        en: `"Look around you! We are Shadow Company — elite doesn't dehydrate on my watch."`,
+                        cn: `“看看你们周围！我们是暗影公司——在我的麾下，精锐干员绝不在战场上脱水。”`
+                    },
+                    {
+                        en: `"No guts, no glory. Grab that canteen and top off your armor reserves, Shadows!"`,
+                        cn: `“无胆量，无荣光。拿起水壶把水合护甲补满，暗影们！”`
+                    },
+                    {
+                        en: `"This is a Mexican standoff, boys — keep your hydration at 100% and stay frosty."`,
+                        cn: `“现在是决胜对峙时刻，伙计们——保持 100% 水合战备状态，头脑放清醒。”`
+                    },
+                    {
+                        en: `"Green light across the board. Shadows are oscar mike — drink up before deployment!"`,
+                        cn: `“全线绿灯通行。暗影部队全员开进——正式部署前把水喝够！”`
+                    }
+                ],
+                alertQuote: '"这里是 Graves Shadow 0-1！你的水合护甲板已经破裂见底了，别在我的战区里脱水倒下，立刻拿起水杯装填护甲！YUP-YUP!"'
+            },
+            {
+                callsign: 'Ghost Bravo 0-7',
+                faction: 'TASK FORCE 141 // 141特遣队',
+                role: 'SAS LIEUTENANT (西蒙·“幽灵”·莱利)',
+                bilingualQuotes: [
+                    {
+                        en: `"Stay frosty, yeah? An empty canteen in the field is a death sentence."`,
+                        cn: `“保持冷静，明白吗？在战场上水壶见底无异于自寻死路。”`
+                    },
+                    {
+                        en: `"Bravo 0-7 here. Check your corners, check your plates, and drink some bloody water."`,
+                        cn: `“这里是 Bravo 0-7。检查死角，检查护甲插板，再去喝点该死的水。”`
+                    },
+                    {
+                        en: `"Be careful who you trust, Sergeant... but you can always trust clean H2O."`,
+                        cn: `“小心你信任的人，中士……但你永远可以信任纯净的饮用水。”`
+                    },
+                    {
+                        en: `"Choices have consequences. Skipping hydration will cost you in the final circle."`,
+                        cn: `“每个选择都有代价。跳过补水会让你在决赛圈付出惨重代价。”`
+                    },
+                    {
+                        en: `"Mask stays on. Except when replenishing fluid reserves. Copy that?"`,
+                        cn: `“面罩绝不摘下。补充水分储备时除外。收到没有？”`
+                    }
+                ],
+                alertQuote: '"这里是 Ghost Bravo 0-7 (Stay Frosty)。你的水合护甲已清零，再不喝水你就只能进古拉格了。立即补水！"'
+            },
+            {
+                callsign: 'Soap Bravo 7-1',
+                faction: 'TASK FORCE 141 // 141特遣队',
+                role: 'SAS SERGEANT (约翰·“肥皂”·麦克塔维什)',
+                bilingualQuotes: [
+                    {
+                        en: `"STEADY, LADS! Slap in a fresh hydration plate before the gas closes in!"`,
+                        cn: `“稳住，伙计们！在毒气缩圈之前赶紧插上一块新的水合装甲板！”`
+                    },
+                    {
+                        en: `"Bloody hell, my throat's drier than Al Mazrah! Pass the tactical canteen!"`,
+                        cn: `“见鬼，我的嗓子比阿玛兹拉沙漠还干！快把战术水壶递过来！”`
+                    },
+                    {
+                        en: `"C4 is set, timer is ticking — just like your hydration radar. Drink up!"`,
+                        cn: `“C4 已安放，倒计时正在滴答作响——就像你的补水雷达一样。快喝水！”`
+                    },
+                    {
+                        en: `"Ghost, did you see that?! Full 8-plate hydration achieved, mate!"`,
+                        cn: `“幽灵，你看到了吗？！8格水合护甲全部拉满，伙计！”`
+                    },
+                    {
+                        en: `"Right then, let's get tactical. One cup of water now saves a medic later."`,
+                        cn: `“好吧，让我们讲究点战术。现在喝一杯水，待会儿省一个医疗兵。”`
+                    }
+                ],
+                alertQuote: '"肥皂 Bravo 7-1 呼叫！你看起来快脱水了兄弟，赶紧喝杯水把护甲打满！"'
+            },
+            {
+                callsign: 'Price Bravo 0-6',
+                faction: 'TASK FORCE 141 // 141特遣队',
+                role: 'CAPTAIN (约翰·普莱斯上尉)',
+                bilingualQuotes: [
+                    {
+                        en: `"Bravo Six, going dark... right after you finish this glass of water, soldier."`,
+                        cn: `“Bravo 6，准备潜入黑暗……就在你喝完这杯水之后，士兵。”`
+                    },
+                    {
+                        en: `"Rule number one of survival: keep your rifle dry and your body hydrated."`,
+                        cn: `“战场生存第一铁律：保持步枪干燥，保持身体水合充沛。”`
+                    },
+                    {
+                        en: `"We get dirty, and the world stays clean. Now top off your reserves, that's an order."`,
+                        cn: `“我们沾满泥泞，世界才能保持干净。现在补满你的水分储备，这是命令。”`
+                    },
+                    {
+                        en: `"On your feet, soldier! We are leaving — grab your canteen and move!"`,
+                        cn: `“站起来，士兵！我们要撤离了——抓起你的水壶，立刻行动！”`
+                    },
+                    {
+                        en: `"History is written by the victors. And victors remember to hydrate on schedule."`,
+                        cn: `“历史由胜利者书写。而胜利者总是记得按时补充水分。”`
+                    }
+                ],
+                alertQuote: '"这里是普莱斯上尉 Bravo 0-6。立即放下手头的工作喝水，这是最高优先级指令！"'
+            },
+            {
+                callsign: 'Gaz Bravo 2-6',
+                faction: 'TASK FORCE 141 // 141特遣队',
+                role: 'SAS SERGEANT (凯尔·“盖兹”·加里克)',
+                bilingualQuotes: [
+                    {
+                        en: `"Bravo 2-6 on station. Check your gear and take a drink, Captain's orders."`,
+                        cn: `“Bravo 2-6 已就位。检查装备并喝口水，这是上尉的命令。”`
+                    },
+                    {
+                        en: `"Nice and clean! Nothing beats a cold sip of water after clearing a stronghold."`,
+                        cn: `“干得漂亮利落！清空据点之后，没什么比喝口凉水更提神的了。”`
+                    },
+                    {
+                        en: `"Eyes open, weapons free, canteens full. Let's show 'em how the SAS does it."`,
+                        cn: `“睁大眼睛，自由开火，水壶装满。让他们见识下 SAS 特勤团的作风。”`
+                    },
+                    {
+                        en: `"Target neutralized. Taking five seconds behind cover to plate up and rehydrate!"`,
+                        cn: `“目标已清除。利用五秒掩体时间打满水合护甲、补充水分！”`
+                    },
+                    {
+                        en: `"Never leave a mate behind — or an unfinished daily hydration quota. Drink up!"`,
+                        cn: `“绝不抛弃任何一个队友——也绝不留下未完成的每日饮水指标。干杯！”`
+                    }
+                ],
+                alertQuote: '"这里是盖兹 Bravo 2-6！伙计，你的水合护甲已经碎了，立刻寻找掩体喝水补甲！"'
+            }
+        ];
+
+        const TACTICAL_QUOTES = [
+            '水合护甲板充能锁定 (ARMOR LOCKED)',
+            '暗影公司空投补给已签收 (SHADOW DROP)',
+            '核心体液指标恢复战备状态',
+            '复合水合插板已滑入胸挂',
+            '战术水壶装填确认，YUP-YUP!',
+            '生物装甲完整性提升'
+        ];
+
+        function getTodayDateString() {
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        let appState = {
+            date: getTodayDateString(),
+            operatorIdx: 0, // 0 = Graves Shadow 0-1
+            quoteIdx: 0,
+            currentIntake: 0,
+            targetIntake: 2000,
+            streak: 1,
+            lastGoalMetDate: null,
+            soundEnabled: true,
+            volume: 85,
+            soundProfile: 'warzone2',
+            nvgMode: false,
+            timerIntervalMin: 45,
+            logs: [],
+            history: {}
+        };
+
+        let calendarView = {
+            year: new Date().getFullYear(),
+            month: new Date().getMonth(),
+            selectedDateStr: getTodayDateString()
+        };
+
+        let timerState = {
+            totalSeconds: 45 * 60,
+            remainingSeconds: 45 * 60,
+            isRunning: true,
+            intervalId: null
+        };
+
+        function syncTodayToHistory() {
+            if (!appState.history) appState.history = {};
+            const today = appState.date || getTodayDateString();
+            appState.history[today] = {
+                intake: appState.currentIntake,
+                target: appState.targetIntake,
+                met: appState.currentIntake >= appState.targetIntake
+            };
+            recalculateStreakAndDays();
+        }
+
+        function recalculateStreakAndDays() {
+            if (!appState.history) appState.history = {};
+            const today = appState.date || getTodayDateString();
+            const [y, m, d] = today.split('-').map(Number);
+            const baseDate = new Date(y, m - 1, d);
+
+            let streak = 0;
+            for (let offset = 0; offset < 365; offset++) {
+                const checkDate = new Date(baseDate);
+                checkDate.setDate(baseDate.getDate() - offset);
+                const ds = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+                const rec = appState.history[ds];
+                if (rec && rec.met) {
+                    streak++;
+                } else {
+                    if (offset === 0) continue;
+                    break;
+                }
+            }
+            appState.streak = Math.max(1, streak);
+        }
+
+        function performMidnightRollover(newDateStr, isSimulated = false) {
+            if (!appState.history) appState.history = {};
+            const oldDate = appState.date;
+            appState.history[oldDate] = {
+                intake: appState.currentIntake,
+                target: appState.targetIntake,
+                met: appState.currentIntake >= appState.targetIntake
+            };
+
+            appState.date = newDateStr;
+            appState.currentIntake = 0;
+            appState.logs = [
+                {
+                    id: Date.now(),
+                    time: formatCurrentTime(),
+                    amount: 0,
+                    label: isSimulated ? 'SIMULATED 00:00 RESET' : 'AUTO MIDNIGHT RESET',
+                    quote: `已跨过 00:00 零点，上一日(${oldDate})数据已归档至日历，新一日护甲槽已清零就绪`
+                }
+            ];
+
+            syncTodayToHistory();
+            calendarView.selectedDateStr = newDateStr;
+            saveState();
+            renderAll();
+            soundFX.playRadioPTT();
+        }
+
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('COD_TACTICAL_HYDRATION_V2');
+                const today = getTodayDateString();
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    appState = { ...appState, ...parsed };
+                    if (!appState.history) appState.history = {};
+
+                    if (parsed.date && parsed.date !== today) {
+                        appState.history[parsed.date] = {
+                            intake: parsed.currentIntake || 0,
+                            target: parsed.targetIntake || 2000,
+                            met: (parsed.currentIntake || 0) >= (parsed.targetIntake || 2000)
+                        };
+                        appState.date = today;
+                        appState.currentIntake = 0;
+                        appState.logs = [
+                            {
+                                id: Date.now(),
+                                time: formatCurrentTime(),
+                                amount: 0,
+                                label: '00:00 AUTO-RESET',
+                                quote: '零点跨日自动刷新完成，昨日记录已存入战术日历'
+                            }
+                        ];
+                    }
+                } else {
+                    appState.logs = [
+                        {
+                            id: Date.now(),
+                            time: formatCurrentTime(),
+                            amount: 0,
+                            label: 'SHADOW 0-1 ONLINE',
+                            quote: '暗影公司指挥官 Graves Shadow 0-1 已接管水合终端，YUP-YUP!'
+                        }
+                    ];
+                }
+                syncTodayToHistory();
+                saveState();
+            } catch (e) {
+                console.error('Failed to load tactical state:', e);
+            }
+
+            soundFX.enabled = appState.soundEnabled;
+            soundFX.volume = (appState.volume !== undefined ? appState.volume : 85) / 100;
+            soundFX.profile = appState.soundProfile || 'warzone2';
+
+            if (appState.nvgMode) {
+                document.body.classList.add('nvg-mode');
+            }
+            timerState.totalSeconds = appState.timerIntervalMin * 60;
+            timerState.remainingSeconds = timerState.totalSeconds;
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+            } catch (e) {
+                console.error('Failed to save tactical state:', e);
+            }
+        }
+
+        function formatCurrentTime() {
+            const now = new Date();
+            return now.toTimeString().split(' ')[0];
+        }
+
+        /**************************************************************
+         * 3. UI 渲染与更新逻辑 (HUD + 双语台词 + 战术小日历渲染)
+         **************************************************************/
+        function renderAll() {
+            syncTodayToHistory();
+
+            // 1. 渲染当前选中的特战干员与中英文双语经典台词
+            const opIndex = (appState.operatorIdx >= 0 && appState.operatorIdx < OPERATORS_DATA.length) ? appState.operatorIdx : 0;
+            const currentOp = OPERATORS_DATA[opIndex];
+
+            const opSelect = document.getElementById('operatorSelect');
+            if (opSelect) opSelect.value = String(opIndex);
+
+            document.getElementById('operatorFactionTag').textContent = currentOp.faction;
+            document.getElementById('commsCallsignBadge').textContent = currentOp.callsign.toUpperCase();
+            document.getElementById('commsRoleLabel').textContent = `// ${currentOp.role}`;
+
+            const quotesArr = currentOp.bilingualQuotes || [];
+            const qIdx = (appState.quoteIdx || 0) % quotesArr.length;
+            const currentQuote = quotesArr[qIdx] || { en: '', cn: '' };
+
+            document.getElementById('quoteIndexLabel').textContent = `QUOTE #${qIdx + 1}/${quotesArr.length}`;
+            document.getElementById('commsVoiceLineEn').textContent = currentQuote.en;
+            document.getElementById('commsVoiceLineCn').textContent = currentQuote.cn;
+
+            // 同步更新全屏警报弹窗中的指挥官呼号与台词
+            document.getElementById('alertHeaderCallsign').textContent = `[${currentOp.callsign.toUpperCase()} // 指挥部紧急呼叫]`;
+            document.getElementById('alertCommanderQuote').textContent = currentOp.alertQuote;
+
+            // 2. 累计执勤天数、连续满甲天数与日期
+            const totalRecordedDays = Math.max(1, Object.keys(appState.history || {}).filter(k => {
+                const r = appState.history[k];
+                return k === appState.date || (r && r.intake > 0);
+            }).length);
+
+            document.getElementById('streakCount').textContent = appState.streak;
+            document.getElementById('headerTotalDays').textContent = totalRecordedDays;
+            document.getElementById('statTotalDays').textContent = totalRecordedDays;
+            document.getElementById('statStreakDays').textContent = appState.streak;
+            document.getElementById('todayDateLabel').textContent = `MISSION DATE: ${appState.date}`;
+
+            // 3. 音效控制台与顶部静音按钮状态
+            const soundBtn = document.getElementById('soundToggleBtn');
+            const soundOnIcon = document.getElementById('soundIconOn');
+            const soundOffIcon = document.getElementById('soundIconOff');
+            const soundText = document.getElementById('soundStatusText');
+            const engineBadge = document.getElementById('audioEngineBadge');
+
+            document.getElementById('volumeSlider').value = appState.volume;
+            document.getElementById('volumePercentLabel').textContent = appState.soundEnabled ? `${appState.volume}%` : 'MUTE';
+            document.getElementById('soundProfileSelect').value = appState.soundProfile || 'warzone2';
+
+            if (appState.soundEnabled && appState.volume > 0) {
+                soundOnIcon.classList.remove('hidden');
+                soundOffIcon.classList.add('hidden');
+                soundText.textContent = `${appState.volume}%`;
+                soundBtn.className = 'bg-cod-bg/90 border border-cod-green/60 px-2 py-1.5 clip-btn flex items-center gap-1 text-xs font-mono text-cod-green';
+                engineBadge.textContent = 'WZ-2.0 ON';
+                engineBadge.className = 'font-mono text-[9px] text-cod-green bg-cod-greenDim px-1';
+            } else {
+                soundOnIcon.classList.add('hidden');
+                soundOffIcon.classList.remove('hidden');
+                soundText.textContent = 'MUTE';
+                soundBtn.className = 'bg-cod-bg/90 border border-cod-red/60 px-2 py-1.5 clip-btn flex items-center gap-1 text-xs font-mono text-cod-red';
+                engineBadge.textContent = 'MUTED';
+                engineBadge.className = 'font-mono text-[9px] text-cod-red bg-cod-redDim px-1';
+            }
+
+            // 4. 水量计算与百分比
+            const current = appState.currentIntake;
+            const target = appState.targetIntake;
+            const rawPercent = Math.round((current / target) * 100);
+            const mlPerPlate = Math.round(target / 8);
+
+            document.getElementById('currentIntakeDisplay').textContent = current;
+            document.getElementById('targetIntakeDisplay').textContent = target;
+            document.getElementById('percentageDisplay').textContent = `${rawPercent}%`;
+            document.getElementById('mlPerPlateDisplay').textContent = mlPerPlate;
+
+            const remaining = Math.max(0, target - current);
+            const hintEl = document.getElementById('remainingHintText');
+            if (remaining > 0) {
+                hintEl.innerHTML = `距离满护甲还需补充 <span class="text-cod-blue font-bold">${remaining}</span> ml`;
+            } else {
+                hintEl.innerHTML = `<span class="text-cod-green font-bold">★ 今日水合装甲已 100% 满载！超额充能 +${current - target} ml</span>`;
+            }
+
+            // 5. 更新顶部水合状态徽章
+            const badge = document.getElementById('hydrationStatusBadge');
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const plateStatusLabel = document.getElementById('plateStatusLabel');
+
+            if (rawPercent >= 100) {
+                badge.className = 'hidden xl:flex items-center gap-2 px-2.5 py-1 border border-cod-green/60 bg-cod-greenDim clip-btn';
+                statusDot.className = 'w-2 h-2 bg-cod-green shadow-[0_0_8px_#00ff66]';
+                statusText.className = 'text-[11px] font-bold tracking-wider text-cod-green';
+                statusText.textContent = '满甲战备 // FULL ARMOR';
+                plateStatusLabel.textContent = 'ARMOR FULLY CHARGED // 满护甲状态';
+                plateStatusLabel.className = 'text-cod-green font-bold';
+            } else if (rawPercent >= 50) {
+                badge.className = 'hidden xl:flex items-center gap-2 px-2.5 py-1 border border-cod-blue/60 bg-cod-blueDim clip-btn';
+                statusDot.className = 'w-2 h-2 bg-cod-blue shadow-[0_0_8px_#00d8ff]';
+                statusText.className = 'text-[11px] font-bold tracking-wider text-cod-blue';
+                statusText.textContent = '战备正常 // NOMINAL';
+                plateStatusLabel.textContent = 'CHARGING IN PROGRESS // 护甲充能中';
+                plateStatusLabel.className = 'text-cod-blue';
+            } else {
+                badge.className = 'hidden xl:flex items-center gap-2 px-2.5 py-1 border border-cod-amber/60 bg-cod-amberDim clip-btn';
+                statusDot.className = 'w-2 h-2 bg-cod-amber animate-ping';
+                statusText.className = 'text-[11px] font-bold tracking-wider text-cod-amber';
+                statusText.textContent = '轻度脱水警告 // LOW ARMOR';
+                plateStatusLabel.textContent = 'LOW HYDRATION // 需插入水合护甲板';
+                plateStatusLabel.className = 'text-cod-amber';
+            }
+
+            // 6. 渲染 8 格战术护甲板
+            renderArmorPlates(current, target);
+
+            // 7. 撤回按钮可用性
+            const hasDrinkLogs = appState.logs.some(item => item.amount > 0);
+            document.getElementById('undoIntakeBtn').disabled = !hasDrinkLogs;
+
+            // 8. 渲染行动日志与战术执勤小日历板
+            renderMissionLogs();
+            renderCalendarBoard();
+        }
+
+        function renderCalendarBoard() {
+            const grid = document.getElementById('calendarGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            const year = calendarView.year;
+            const month = calendarView.month;
+            const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
+            document.getElementById('calMonthLabel').textContent = monthStr;
+
+            const firstDayOfWeek = (new Date(year, month, 1).getDay() + 6) % 7;
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            let monthFullCount = 0;
+            for (let d = 1; d <= daysInMonth; d++) {
+                const ds = `${monthStr}-${String(d).padStart(2, '0')}`;
+                const rec = appState.history && appState.history[ds];
+                if (rec && rec.met) monthFullCount++;
+            }
+            document.getElementById('statMonthFullDays').textContent = monthFullCount;
+
+            for (let i = 0; i < firstDayOfWeek; i++) {
+                const empty = document.createElement('div');
+                empty.className = 'h-8 bg-cod-bg/30 border border-transparent';
+                grid.appendChild(empty);
+            }
+
+            const todayStr = appState.date || getTodayDateString();
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const ds = `${monthStr}-${String(d).padStart(2, '0')}`;
+                const rec = (appState.history && appState.history[ds]) || null;
+                const isToday = ds === todayStr;
+                const isSelected = ds === calendarView.selectedDateStr;
+
+                let cellStyle = 'bg-cod-bg border-cod-border text-slate-400 hover:border-cod-blue/60';
+                let badgeHtml = '';
+
+                if (rec && rec.met) {
+                    cellStyle = 'bg-cod-greenDim border-cod-green text-cod-green font-bold';
+                    badgeHtml = '<span class="w-1.5 h-1.5 rounded-full bg-cod-green shadow-[0_0_4px_#00ff66]"></span>';
+                } else if (rec && rec.intake > 0) {
+                    cellStyle = 'bg-cod-amberDim border-cod-amber/70 text-cod-amber font-bold';
+                    badgeHtml = '<span class="w-1.5 h-1.5 rounded-full bg-cod-amber"></span>';
+                }
+
+                if (isToday) {
+                    cellStyle += ' ring-1 ring-cod-blue';
+                }
+                if (isSelected) {
+                    cellStyle += ' brightness-125 shadow-[0_0_8px_rgba(0,216,255,0.4)]';
+                }
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `h-8 border ${cellStyle} clip-btn flex flex-col items-center justify-center relative transition`;
+                btn.innerHTML = `
+                    <span class="text-[11px] leading-none">${d}</span>
+                    <div class="mt-0.5 h-1.5 flex items-center justify-center">${badgeHtml}</div>
+                `;
+                btn.addEventListener('click', () => {
+                    soundFX.playHitmarker();
+                    calendarView.selectedDateStr = ds;
+                    renderCalendarBoard();
+                });
+                grid.appendChild(btn);
+            }
+
+            const selStr = calendarView.selectedDateStr;
+            const infoEl = document.getElementById('selectedDateInfo');
+            const toggleMetBtn = document.getElementById('toggleSelectedDateMetBtn');
+            if (selStr) {
+                const rec = (appState.history && appState.history[selStr]) || { intake: 0, target: appState.targetIntake, met: false };
+                const statusTag = rec.met ? '★满甲达标' : rec.intake > 0 ? '部分补水' : '未打卡';
+                infoEl.innerHTML = `<span class="text-cod-blue font-bold">${selStr}</span>: ${rec.intake}/${rec.target}ML [${statusTag}]`;
+                toggleMetBtn.classList.remove('hidden');
+                toggleMetBtn.textContent = rec.met ? '取消满甲' : '补签满甲';
+            }
+        }
+
+        function renderArmorPlates(current, target) {
+            const container = document.getElementById('armorPlatesContainer');
+            container.innerHTML = '';
+            const plateCapacity = target / 8;
+            let fullPlatesCount = 0;
+
+            for (let i = 0; i < 8; i++) {
+                const plateStart = i * plateCapacity;
+                const fillAmount = Math.max(0, Math.min(plateCapacity, current - plateStart));
+                const fillRatio = Math.min(100, Math.round((fillAmount / plateCapacity) * 100));
+
+                if (fillRatio >= 100) fullPlatesCount++;
+
+                const slot = document.createElement('div');
+                slot.className = `relative h-12 sm:h-14 bg-cod-bg border ${
+                    fillRatio >= 100
+                        ? 'border-cod-blue plate-active-glow'
+                        : fillRatio > 0
+                        ? 'border-cod-blue/70'
+                        : 'border-cod-border'
+                } clip-plate overflow-hidden flex flex-col justify-end transition-all duration-300`;
+
+                const fillBar = document.createElement('div');
+                fillBar.style.height = `${fillRatio}%`;
+                fillBar.className = `w-full transition-all duration-500 ${
+                    fillRatio >= 100
+                        ? 'bg-gradient-to-t from-[#007799] via-[#00b8e6] to-[#00d8ff]'
+                        : 'bg-cod-blue/50'
+                }`;
+
+                const indexLabel = document.createElement('span');
+                indexLabel.className = 'absolute top-1 left-1.5 font-mono text-[9px] text-white/70 z-10';
+                indexLabel.textContent = `P${i + 1}`;
+
+                const pctLabel = document.createElement('span');
+                pctLabel.className = 'absolute bottom-0.5 right-1 font-mono text-[9px] text-white/90 font-bold z-10';
+                pctLabel.textContent = fillRatio > 0 ? `${fillRatio}%` : '';
+
+                slot.appendChild(fillBar);
+                slot.appendChild(indexLabel);
+                slot.appendChild(pctLabel);
+                container.appendChild(slot);
+            }
+
+            document.getElementById('activePlatesBadge').textContent = `${fullPlatesCount}/8`;
+        }
+
+        function renderMissionLogs() {
+            const listEl = document.getElementById('missionLogList');
+            const badgeEl = document.getElementById('logCountBadge');
+            listEl.innerHTML = '';
+
+            const drinkLogsCount = appState.logs.filter(l => l.amount > 0).length;
+            badgeEl.textContent = `${drinkLogsCount} DROPS`;
+
+            appState.logs.slice().reverse().forEach(entry => {
+                const row = document.createElement('div');
+                const isIntake = entry.amount > 0;
+                row.className = `p-2.5 border-l-2 ${
+                    isIntake ? 'border-cod-green bg-cod-bg/90' : 'border-cod-blue bg-cod-bg/50'
+                } flex items-start justify-between gap-2`;
+
+                row.innerHTML = `
+                    <div class="space-y-0.5">
+                        <div class="flex items-center gap-2">
+                            <span class="text-slate-500">[${entry.time}]</span>
+                            <span class="${isIntake ? 'text-cod-green font-bold' : 'text-cod-blue'}">${entry.label}</span>
+                        </div>
+                        <div class="text-slate-400 text-[11px]">// ${entry.quote}</div>
+                    </div>
+                    ${
+                        isIntake
+                            ? `<span class="text-cod-blue font-bold shrink-0 bg-cod-blueDim px-2 py-0.5">+${entry.amount} ML</span>`
+                            : `<span class="text-slate-500 text-[10px] shrink-0">SYS</span>`
+                    }
+                `;
+                listEl.appendChild(row);
+            });
+        }
+
+        /**************************************************************
+         * 4. 补水打卡、Hitmarker准星反馈与撤回交互 (Hydration Actions)
+         **************************************************************/
+        function spawnHitmarkerVisual(clientX, clientY) {
+            const container = document.getElementById('floatingFeedbackContainer');
+            const marker = document.createElement('div');
+            marker.className = 'hitmarker-fx';
+            const x = clientX || window.innerWidth / 2;
+            const y = clientY || window.innerHeight / 2;
+            marker.style.left = `${x}px`;
+            marker.style.top = `${y}px`;
+            marker.innerHTML = `
+                <svg viewBox="0 0 24 24" class="w-full h-full stroke-white drop-shadow-[0_0_4px_#00d8ff]" stroke-width="2.5" fill="none">
+                    <line x1="3" y1="3" x2="9" y2="9" />
+                    <line x1="21" y1="3" x2="15" y2="9" />
+                    <line x1="3" y1="21" x2="9" y2="15" />
+                    <line x1="21" y1="21" x2="15" y2="15" />
+                </svg>
+            `;
+            container.appendChild(marker);
+            setTimeout(() => marker.remove(), 220);
+        }
+
+        function showFloatingFeedback(amount) {
+            const container = document.getElementById('floatingFeedbackContainer');
+            const el = document.createElement('div');
+            el.className = 'fixed left-1/2 top-1/3 -translate-x-1/2 font-mono text-2xl sm:text-3xl font-bold text-cod-blue glow-blue pointer-events-none transition-all duration-700 opacity-100';
+            el.innerHTML = `🛡️ +${amount} ML // PLATE INSERTED`;
+            container.appendChild(el);
+
+            requestAnimationFrame(() => {
+                el.style.transform = 'translate(-50%, -65px) scale(1.1)';
+                el.style.opacity = '0';
+            });
+
+            setTimeout(() => {
+                el.remove();
+            }, 750);
+        }
+
+        function addHydration(amount, sourceLabel = '战术补给 // SUPPLY', evt = null) {
+            const numericAmount = parseInt(amount, 10);
+            if (isNaN(numericAmount) || numericAmount <= 0) return;
+
+            if (evt && evt.clientX) {
+                spawnHitmarkerVisual(evt.clientX, evt.clientY);
+            }
+
+            const wasBelowGoal = appState.currentIntake < appState.targetIntake;
+            appState.currentIntake += numericAmount;
+            const isNowAboveGoal = appState.currentIntake >= appState.targetIntake;
+
+            const today = getTodayDateString();
+            if (wasBelowGoal && isNowAboveGoal && appState.lastGoalMetDate !== today) {
+                appState.lastGoalMetDate = today;
+            }
+
+            const pct = Math.min(100, Math.round((appState.currentIntake / appState.targetIntake) * 100));
+            const currentOp = OPERATORS_DATA[appState.operatorIdx] || OPERATORS_DATA[0];
+            const randomQuote = TACTICAL_QUOTES[Math.floor(Math.random() * TACTICAL_QUOTES.length)];
+
+            appState.logs.push({
+                id: Date.now(),
+                time: formatCurrentTime(),
+                amount: numericAmount,
+                label: `[${currentOp.callsign.split(' ')[0].toUpperCase()}] ${sourceLabel}`,
+                quote: `${randomQuote} (${pct}%)`
+            });
+
+            syncTodayToHistory();
+            saveState();
+            renderAll();
+
+            const container = document.getElementById('armorPlatesContainer');
+            container.classList.remove('animate-plate-insert');
+            void container.offsetWidth;
+            container.classList.add('animate-plate-insert');
+
+            soundFX.playHitmarker();
+            soundFX.playArmorPlateInsert(wasBelowGoal && isNowAboveGoal);
+            showFloatingFeedback(numericAmount);
+        }
+
+        function undoLastHydration() {
+            for (let i = appState.logs.length - 1; i >= 0; i--) {
+                if (appState.logs[i].amount > 0) {
+                    const removed = appState.logs.splice(i, 1)[0];
+                    appState.currentIntake = Math.max(0, appState.currentIntake - removed.amount);
+                    soundFX.playUndo();
+                    syncTodayToHistory();
+                    saveState();
+                    renderAll();
+                    break;
+                }
+            }
+        }
+
+        /**************************************************************
+         * 5. 战术声呐倒计时与全屏 HQ 呼叫系统 (Radar Countdown)
+         **************************************************************/
+        function formatCountdown(sec) {
+            const m = Math.floor(sec / 60);
+            const s = sec % 60;
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function updateTimerUI() {
+            document.getElementById('countdownDisplay').textContent = formatCountdown(timerState.remainingSeconds);
+            const pct = timerState.totalSeconds > 0
+                ? Math.max(0, (timerState.remainingSeconds / timerState.totalSeconds) * 100)
+                : 0;
+            document.getElementById('timerProgressBar').style.width = `${pct}%`;
+
+            const sweepEl = document.getElementById('radarSweepEl');
+            const toggleBtn = document.getElementById('toggleTimerBtn');
+            const stateTag = document.getElementById('timerStateTag');
+
+            if (timerState.isRunning) {
+                sweepEl.classList.remove('paused');
+                toggleBtn.textContent = '暂停雷达 // PAUSE';
+                toggleBtn.className = 'bg-cod-amber/20 hover:bg-cod-amber text-cod-amber hover:text-black border border-cod-amber py-1.5 clip-btn font-mono text-xs font-bold tracking-wider transition';
+                stateTag.textContent = 'ACTIVE';
+                stateTag.className = 'text-[10px] font-mono px-1.5 py-0.2 bg-cod-greenDim text-cod-green';
+            } else {
+                sweepEl.classList.add('paused');
+                toggleBtn.textContent = '启动雷达 // RESUME';
+                toggleBtn.className = 'bg-cod-green/20 hover:bg-cod-green text-cod-green hover:text-black border border-cod-green py-1.5 clip-btn font-mono text-xs font-bold tracking-wider transition';
+                stateTag.textContent = 'STANDBY';
+                stateTag.className = 'text-[10px] font-mono px-1.5 py-0.2 bg-cod-amberDim text-cod-amber';
+            }
+        }
+
+        function startTimerLoop() {
+            if (timerState.intervalId) clearInterval(timerState.intervalId);
+            timerState.isRunning = true;
+            updateTimerUI();
+
+            timerState.intervalId = setInterval(() => {
+                if (!timerState.isRunning) return;
+                if (timerState.remainingSeconds > 0) {
+                    timerState.remainingSeconds -= 1;
+                    updateTimerUI();
+                } else {
+                    triggerHQHydrationAlert();
+                }
+            }, 1000);
+        }
+
+        function setTimerInterval(minutes) {
+            soundFX.playClick();
+            appState.timerIntervalMin = minutes;
+            saveState();
+
+            timerState.totalSeconds = minutes * 60;
+            timerState.remainingSeconds = timerState.totalSeconds;
+            document.getElementById('currentIntervalLabel').textContent = `${minutes} MIN`;
+
+            document.querySelectorAll('.interval-btn').forEach(btn => {
+                const val = parseInt(btn.getAttribute('data-interval'), 10);
+                if (val === minutes) {
+                    btn.className = 'interval-btn bg-cod-greenDim border border-cod-green py-1.5 clip-btn text-cod-green font-bold';
+                } else {
+                    btn.className = 'interval-btn bg-cod-bg border border-cod-border hover:border-cod-green py-1.5 clip-btn text-slate-300';
+                }
+            });
+
+            startTimerLoop();
+        }
+
+        function startTenSecondTest() {
+            soundFX.playClick();
+            timerState.totalSeconds = 10;
+            timerState.remainingSeconds = 10;
+            document.getElementById('currentIntervalLabel').textContent = '10 SEC [TEST]';
+            document.querySelectorAll('.interval-btn').forEach(btn => {
+                btn.className = 'interval-btn bg-cod-bg border border-cod-border hover:border-cod-green py-1.5 clip-btn text-slate-300';
+            });
+            startTimerLoop();
+        }
+
+        function triggerHQHydrationAlert() {
+            timerState.isRunning = false;
+            updateTimerUI();
+
+            const modal = document.getElementById('hqAlertModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            soundFX.startAlertLoop();
+
+            if ('Notification' in window && Notification.permission === 'granted') {
+                try {
+                    new Notification('【UMBRA 指挥部呼叫】特战队员，立即执行补水行动！', {
+                        body: '战术声呐倒计时已归零，请立即补充水分以维持水合护甲状态。',
+                        tag: 'cod-hydration-alert'
+                    });
+                } catch (e) {
+                    console.warn('Notification error:', e);
+                }
+            }
+        }
+
+        function dismissHQAlertAndRestart(nextSeconds = null) {
+            soundFX.stopAlertLoop();
+            const modal = document.getElementById('hqAlertModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+
+            const duration = nextSeconds !== null ? nextSeconds : appState.timerIntervalMin * 60;
+            timerState.totalSeconds = duration;
+            timerState.remainingSeconds = duration;
+            startTimerLoop();
+        }
+
+        function setSliderValue(val) {
+            const slider = document.getElementById('targetRangeSlider');
+            if (slider) slider.value = val;
+            const preview = document.getElementById('modalTargetPreview');
+            if (preview) preview.textContent = val;
+            const platePreview = document.getElementById('modalPlatePreview');
+            if (platePreview) platePreview.textContent = Math.round(val / 8);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initUmbraAppIconAndPWA();
+            loadState();
+            renderAll();
+            startTimerLoop();
+
+            // 实时军事时钟与每日 00:00 零点自动清零监测引擎
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById('tacticalClock').textContent = `${now.toTimeString().split(' ')[0]} LOCAL`;
+
+                // 计算距离今晚 24:00 (明日 00:00) 的倒计时
+                const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+                const diffSec = Math.max(0, Math.floor((tomorrow - now) / 1000));
+                const hh = String(Math.floor(diffSec / 3600)).padStart(2, '0');
+                const mm = String(Math.floor((diffSec % 3600) / 60)).padStart(2, '0');
+                const ss = String(diffSec % 60).padStart(2, '0');
+                const countdownEl = document.getElementById('midnightCountdown');
+                if (countdownEl) countdownEl.textContent = `${hh}:${mm}:${ss}`;
+
+                // 检测是否跨过零点进入新的一天
+                const realToday = getTodayDateString();
+                if (realToday !== appState.date) {
+                    performMidnightRollover(realToday, false);
+                }
+            }, 1000);
+
+            // 特战干员下拉切换（含 Graves Shadow 0-1 与 Gaz Bravo 2-6）
+            document.getElementById('operatorSelect').addEventListener('change', (e) => {
+                appState.operatorIdx = parseInt(e.target.value, 10) || 0;
+                appState.quoteIdx = 0;
+                soundFX.playRadioPTT();
+                const selectedOp = OPERATORS_DATA[appState.operatorIdx];
+                appState.logs.push({
+                    id: Date.now(),
+                    time: formatCurrentTime(),
+                    amount: 0,
+                    label: 'OPERATOR SWITCHED',
+                    quote: `已切换指挥链路至 ${selectedOp.callsign}`
+                });
+                saveState();
+                renderAll();
+            });
+
+            // 切换干员经典双语台词按钮
+            document.getElementById('nextQuoteBtn').addEventListener('click', (e) => {
+                spawnHitmarkerVisual(e.clientX, e.clientY);
+                soundFX.playHitmarker();
+                const currentOp = OPERATORS_DATA[appState.operatorIdx] || OPERATORS_DATA[0];
+                appState.quoteIdx = ((appState.quoteIdx || 0) + 1) % currentOp.bilingualQuotes.length;
+                saveState();
+                renderAll();
+            });
+
+            // 指挥官横幅【呼叫电台 PTT】测试按钮
+            document.getElementById('testRadioCommsBtn').addEventListener('click', (e) => {
+                spawnHitmarkerVisual(e.clientX, e.clientY);
+                soundFX.playRadioPTT();
+                const currentOp = OPERATORS_DATA[appState.operatorIdx] || OPERATORS_DATA[0];
+                appState.quoteIdx = ((appState.quoteIdx || 0) + 1) % currentOp.bilingualQuotes.length;
+                saveState();
+                renderAll();
+            });
+
+            // UMBRA 手机 App 图标与安装指南弹窗控制
+            const appExportModal = document.getElementById('appExportModal');
+            const openExportModal = () => {
+                soundFX.playHitmarker();
+                appExportModal.classList.remove('hidden');
+                appExportModal.classList.add('flex');
+            };
+            document.getElementById('openAppExportModalBtn').addEventListener('click', openExportModal);
+            document.getElementById('headerAppGuideBtn').addEventListener('click', openExportModal);
+            document.getElementById('closeAppExportModalBtn').addEventListener('click', () => {
+                soundFX.playHitmarker();
+                appExportModal.classList.add('hidden');
+                appExportModal.classList.remove('flex');
+            });
+
+            // 顶部与主面板【手动重置今日】按钮逻辑
+            const inlineResetBar = document.getElementById('inlineResetConfirmBar');
+            const showManualResetBar = () => {
+                soundFX.playHitmarker();
+                document.getElementById('resetPreviewMl').textContent = `${appState.currentIntake} ML`;
+                inlineResetBar.classList.remove('hidden');
+                inlineResetBar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            };
+            document.getElementById('headerManualResetBtn').addEventListener('click', showManualResetBar);
+            document.getElementById('panelManualResetBtn').addEventListener('click', showManualResetBar);
+
+            document.getElementById('inlineResetConfirmNo').addEventListener('click', () => {
+                soundFX.playHitmarker();
+                inlineResetBar.classList.add('hidden');
+            });
+
+            document.getElementById('inlineResetConfirmYes').addEventListener('click', () => {
+                soundFX.playUndo();
+                appState.currentIntake = 0;
+                appState.logs = [
+                    {
+                        id: Date.now(),
+                        time: formatCurrentTime(),
+                        amount: 0,
+                        label: 'MANUAL RESET',
+                        quote: '已手动将今日水合装甲进度与饮水量清零重置'
+                    }
+                ];
+                inlineResetBar.classList.add('hidden');
+                syncTodayToHistory();
+                saveState();
+                renderAll();
+            });
+
+            // 战术小日历交互：上月 / 下月 / 回到本月 / 补签满甲 / 模拟零点刷新
+            document.getElementById('calPrevMonthBtn').addEventListener('click', () => {
+                soundFX.playHitmarker();
+                calendarView.month -= 1;
+                if (calendarView.month < 0) {
+                    calendarView.month = 11;
+                    calendarView.year -= 1;
+                }
+                renderCalendarBoard();
+            });
+
+            document.getElementById('calNextMonthBtn').addEventListener('click', () => {
+                soundFX.playHitmarker();
+                calendarView.month += 1;
+                if (calendarView.month > 11) {
+                    calendarView.month = 0;
+                    calendarView.year += 1;
+                }
+                renderCalendarBoard();
+            });
+
+            document.getElementById('calTodayBtn').addEventListener('click', () => {
+                soundFX.playHitmarker();
+                const now = new Date();
+                calendarView.year = now.getFullYear();
+                calendarView.month = now.getMonth();
+                calendarView.selectedDateStr = appState.date;
+                renderCalendarBoard();
+            });
+
+            document.getElementById('toggleSelectedDateMetBtn').addEventListener('click', () => {
+                const sel = calendarView.selectedDateStr;
+                if (!sel) return;
+                if (!appState.history) appState.history = {};
+                const cur = appState.history[sel] || { intake: 0, target: appState.targetIntake, met: false };
+                const nextMet = !cur.met;
+                const nextIntake = nextMet ? Math.max(cur.intake, appState.targetIntake) : 0;
+
+                appState.history[sel] = {
+                    intake: nextIntake,
+                    target: appState.targetIntake,
+                    met: nextMet
+                };
+
+                // 如果补签或修改的是今天，同步更新今日主界面水量
+                if (sel === appState.date) {
+                    appState.currentIntake = nextIntake;
+                }
+
+                recalculateStreakAndDays();
+                saveState();
+                renderAll();
+                soundFX.playArmorPlateInsert(nextMet);
+            });
+
+            // 模拟零点跨日测试按钮
+            document.getElementById('simulateMidnightBtn').addEventListener('click', () => {
+                // 将当前今日数据归档到昨天，并把今天清零以直观演示零点跨日效果
+                const [y, m, d] = appState.date.split('-').map(Number);
+                const yesterday = new Date(y, m - 1, d - 1);
+                const yStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+                if (!appState.history) appState.history = {};
+                appState.history[yStr] = {
+                    intake: appState.currentIntake > 0 ? appState.currentIntake : appState.targetIntake,
+                    target: appState.targetIntake,
+                    met: (appState.currentIntake > 0 ? appState.currentIntake : appState.targetIntake) >= appState.targetIntake
+                };
+                performMidnightRollover(getTodayDateString(), true);
+            });
+
+            // 音效控制台：主音量滑块
+            document.getElementById('volumeSlider').addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                appState.volume = val;
+                appState.soundEnabled = val > 0;
+                soundFX.volume = val / 100;
+                soundFX.enabled = appState.soundEnabled;
+                saveState();
+                renderAll();
+            });
+
+            document.getElementById('volumeSlider').addEventListener('change', () => {
+                soundFX.playHitmarker();
+            });
+
+            // 音效控制台：声学风格切换
+            document.getElementById('soundProfileSelect').addEventListener('change', (e) => {
+                appState.soundProfile = e.target.value;
+                soundFX.profile = appState.soundProfile;
+                saveState();
+                soundFX.playArmorPlateInsert(false);
+            });
+
+            // 音效控制台：上传本地自定义原声替换
+            const customPlateInput = document.getElementById('customPlateAudioInput');
+            const customAlertInput = document.getElementById('customAlertAudioInput');
+            const clearCustomBtn = document.getElementById('clearCustomAudioBtn');
+
+            customPlateInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    soundFX.customPlateAudioUrl = URL.createObjectURL(file);
+                    document.getElementById('customPlateFileLabel').textContent = `已挂载: ${file.name}`;
+                    document.getElementById('customPlateFileLabel').classList.add('text-cod-green');
+                    clearCustomBtn.classList.remove('hidden');
+                    soundFX.playArmorPlateInsert(false);
+                }
+            });
+
+            customAlertInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    soundFX.customAlertAudioUrl = URL.createObjectURL(file);
+                    document.getElementById('customAlertFileLabel').textContent = `已挂载: ${file.name}`;
+                    document.getElementById('customAlertFileLabel').classList.add('text-cod-green');
+                    clearCustomBtn.classList.remove('hidden');
+                    soundFX.playArmorBreakAlarm();
+                }
+            });
+
+            clearCustomBtn.addEventListener('click', () => {
+                soundFX.customPlateAudioUrl = null;
+                soundFX.customAlertAudioUrl = null;
+                customPlateInput.value = '';
+                customAlertInput.value = '';
+                document.getElementById('customPlateFileLabel').textContent = '上传“插装甲板”原声';
+                document.getElementById('customPlateFileLabel').classList.remove('text-cod-green');
+                document.getElementById('customAlertFileLabel').textContent = '上传“呼叫警报”原声';
+                document.getElementById('customAlertFileLabel').classList.remove('text-cod-green');
+                clearCustomBtn.classList.add('hidden');
+                soundFX.playHitmarker();
+            });
+
+            // 切换夜视仪模式 (NVG)
+            document.getElementById('nvgToggleBtn').addEventListener('click', () => {
+                soundFX.playHitmarker();
+                appState.nvgMode = !appState.nvgMode;
+                document.body.classList.toggle('nvg-mode', appState.nvgMode);
+                saveState();
+            });
+
+            // 切换音效开关
+            document.getElementById('soundToggleBtn').addEventListener('click', () => {
+                appState.soundEnabled = !appState.soundEnabled;
+                soundFX.enabled = appState.soundEnabled;
+                if (appState.soundEnabled) {
+                    if (appState.volume === 0) {
+                        appState.volume = 85;
+                        soundFX.volume = 0.85;
+                    }
+                    soundFX.playRadioPTT();
+                } else {
+                    soundFX.stopAlertLoop();
+                }
+                saveState();
+                renderAll();
+            });
+
+            // 自定义毫升添加
+            document.getElementById('customAddBtn').addEventListener('click', (e) => {
+                const input = document.getElementById('customMlInput');
+                const val = parseInt(input.value, 10);
+                if (!isNaN(val) && val >= 10 && val <= 3000) {
+                    addHydration(val, '自定义空投 // CUSTOM DROP', e);
+                    input.value = '';
+                } else {
+                    input.focus();
+                }
+            });
+
+            document.getElementById('customMlInput').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    document.getElementById('customAddBtn').click();
+                }
+            });
+
+            // 撤回上一次补给
+            document.getElementById('undoIntakeBtn').addEventListener('click', () => {
+                undoLastHydration();
+            });
+
+            // 雷达定时器开始/暂停与重置
+            document.getElementById('toggleTimerBtn').addEventListener('click', () => {
+                soundFX.playClick();
+                timerState.isRunning = !timerState.isRunning;
+                updateTimerUI();
+            });
+
+            document.getElementById('resetTimerBtn').addEventListener('click', () => {
+                soundFX.playClick();
+                timerState.totalSeconds = appState.timerIntervalMin * 60;
+                timerState.remainingSeconds = timerState.totalSeconds;
+                document.getElementById('currentIntervalLabel').textContent = `${appState.timerIntervalMin} MIN`;
+                startTimerLoop();
+            });
+
+            // 请求浏览器通知权限
+            const notifyBtn = document.getElementById('notifyPermBtn');
+            if ('Notification' in window && Notification.permission === 'granted') {
+                notifyBtn.textContent = '桌面通讯: 已就绪';
+                notifyBtn.classList.add('text-cod-green', 'border-cod-green/50');
+            }
+            notifyBtn.addEventListener('click', async () => {
+                soundFX.playClick();
+                if (!('Notification' in window)) {
+                    notifyBtn.textContent = '当前环境不支持通知';
+                    return;
+                }
+                const perm = await Notification.requestPermission();
+                if (perm === 'granted') {
+                    notifyBtn.textContent = '桌面通讯: 已就绪';
+                    notifyBtn.classList.add('text-cod-green', 'border-cod-green/50');
+                } else {
+                    notifyBtn.textContent = '通讯权限被拒';
+                }
+            });
+
+            // 目标设置弹窗逻辑
+            const targetModal = document.getElementById('targetModal');
+            const slider = document.getElementById('targetRangeSlider');
+
+            document.getElementById('openTargetModalBtn').addEventListener('click', () => {
+                soundFX.playClick();
+                setSliderValue(appState.targetIntake);
+                targetModal.classList.remove('hidden');
+                targetModal.classList.add('flex');
+            });
+
+            slider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                document.getElementById('modalTargetPreview').textContent = val;
+                document.getElementById('modalPlatePreview').textContent = Math.round(val / 8);
+            });
+
+            document.getElementById('closeTargetModalBtn').addEventListener('click', () => {
+                soundFX.playClick();
+                targetModal.classList.add('hidden');
+                targetModal.classList.remove('flex');
+            });
+
+            document.getElementById('saveTargetBtn').addEventListener('click', () => {
+                soundFX.playArmorPlateInsert(false);
+                appState.targetIntake = parseInt(slider.value, 10);
+                appState.logs.push({
+                    id: Date.now(),
+                    time: formatCurrentTime(),
+                    amount: 0,
+                    label: 'TARGET CALIBRATED',
+                    quote: `每日水合装甲目标已调整为 ${appState.targetIntake} ML`
+                });
+                saveState();
+                renderAll();
+                targetModal.classList.add('hidden');
+                targetModal.classList.remove('flex');
+            });
+
+            // HQ 全屏呼叫弹窗响应按钮
+            document.getElementById('alertDrink250Btn').addEventListener('click', () => {
+                addHydration(250, '指挥部指令补给 // HQ ORDER');
+                dismissHQAlertAndRestart();
+            });
+
+            document.getElementById('alertDrink150Btn').addEventListener('click', () => {
+                addHydration(150, '指挥部指令补给 // HQ ORDER');
+                dismissHQAlertAndRestart();
+            });
+
+            document.getElementById('alertSnoozeBtn').addEventListener('click', () => {
+                soundFX.playClick();
+                document.getElementById('currentIntervalLabel').textContent = '5 MIN [SNOOZE]';
+                dismissHQAlertAndRestart(5 * 60);
+            });
+
+            // 重置今日任务（内联二次确认，不使用原生 confirm）
+            const reqResetBtn = document.getElementById('requestResetDayBtn');
+            const confirmGroup = document.getElementById('confirmResetGroup');
+
+            reqResetBtn.addEventListener('click', () => {
+                soundFX.playClick();
+                reqResetBtn.classList.add('hidden');
+                confirmGroup.classList.remove('hidden');
+            });
+
+            document.getElementById('confirmResetNoBtn').addEventListener('click', () => {
+                soundFX.playClick();
+                confirmGroup.classList.add('hidden');
+                reqResetBtn.classList.remove('hidden');
+            });
+
+            document.getElementById('confirmResetYesBtn').addEventListener('click', () => {
+                soundFX.playUndo();
+                appState.currentIntake = 0;
+                appState.logs = [
+                    {
+                        id: Date.now(),
+                        time: formatCurrentTime(),
+                        amount: 0,
+                        label: 'MISSION RESET',
+                        quote: '今日补水记录与水合护甲已手动重置'
+                    }
+                ];
+                saveState();
+                renderAll();
+                confirmGroup.classList.add('hidden');
+                reqResetBtn.classList.remove('hidden');
+            });
+        });
+    </script>
+</body>
+</html>
